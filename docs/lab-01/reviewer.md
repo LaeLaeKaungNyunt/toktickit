@@ -9,8 +9,8 @@
 |----|--------|------------------|
 | #5 | feature/1-project-foundation | Approved |
 | #6 | feature/2-health-check | Approved |
-| <Issue 3 PR number> | feature/3-category-seed | Approved |
-| <Issue 4 PR number> | feature/4-category-list | Pending |
+| #7 | feature/3-category-seed | Approved |
+| #8 (https://github.com/LaeLaeKaungNyunt/toktickit/pull/8)| feature/4-category-list | Pending |
 
 Reviewer comment I received: <"No additional comment; approved">
 
