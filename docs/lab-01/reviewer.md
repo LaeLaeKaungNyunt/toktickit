@@ -6,11 +6,11 @@
 
 | PR | Branch | Peer Reviewer | Student ID | Reviewer Verdict |
 |----|--------|---------------|------------|------------------|
-| #5 | feature/1-project-foundation | Moe Htet Aung (@MoeD3482) | 67070503482 | Approved |
-| #6 | feature/2-health-check | Moe Htet Aung (@MoeD3482) | 67070503482 | Approved |
-| #7 | feature/3-category-seed | Naing Zay Linn (@naingzaylinn) | 67070503484 | Approved |
+| [#5](https://github.com/LaeLaeKaungNyunt/toktickit/pull/5)| feature/1-project-foundation | Moe Htet Aung (@MoeD3482) | 67070503482 | Approved |
+| [#6](https://github.com/LaeLaeKaungNyunt/toktickit/pull/6)| feature/2-health-check | Moe Htet Aung (@MoeD3482) | 67070503482 | Approved |
+| [#7](https://github.com/LaeLaeKaungNyunt/toktickit/pull/7) | feature/3-category-seed | Naing Zay Linn (@naingzaylinn) | 67070503484 | Approved |
 | [#8](https://github.com/LaeLaeKaungNyunt/toktickit/pull/8) | feature/4-category-list | Naing Zay Linn (@naingzaylinn) | 67070503484 | Approved |
-| #9 | lab1-staging → main | Naing Zay Linn (@naingzaylinn) | 67070503484 | Approved |
+| [#9](https://github.com/LaeLaeKaungNyunt/toktickit/pull/9) | lab1-staging → main | Naing Zay Linn (@naingzaylinn) | 67070503484 | Approved |
 
 **Reviewer comment I received:** No additional comment; approved.
 
