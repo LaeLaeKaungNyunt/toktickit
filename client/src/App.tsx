@@ -7,15 +7,16 @@ type UiState = "idle" | "loading" | "success" | "error";
 export default function App() {
   const [state, setState] = useState<UiState>("idle");
   const [categories, setCategories] = useState<Category[]>([]);
-  void categories;
 
   async function handleCheck() {
     setState("loading");
 
     try {
-      await checkSystem();
+      const result = await checkSystem();
+      setCategories(result.categories);
       setState("success");
     } catch {
+      setCategories([]);
       setState("error");
     }
   }
@@ -31,7 +32,17 @@ export default function App() {
       </button>
 
       {state === "success" && (
-        <p className="mt-3">System Status: Online</p>
+        <div className="mt-3">
+          <p>System Status: Online</p>
+
+          <h2 className="h5">Supported Request Categories</h2>
+
+          <ol>
+            {categories.map((category) => (
+              <li key={category.id}>{category.name}</li>
+            ))}
+          </ol>
+        </div>
       )}
 
       {state === "error" && (
