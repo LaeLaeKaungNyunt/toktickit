@@ -2,6 +2,7 @@ import { useState } from "react";
 import { checkSystem, Category } from "./api.js";
 import { RequesterProvider } from "./context/RequesterContext.js";
 import RequesterSelector from "./components/RequesterSelector.js";
+import CreateTicketForm from "./components/CreateTicketForm.js";
 
 // UI states you must handle for Issue 4: idle, loading, success, error.
 type UiState = "idle" | "loading" | "success" | "error";
@@ -24,12 +25,14 @@ export function AppContent() {
   }
 
   return (
-    <div className="container py-5" style={{ maxWidth: 640 }}>
+    <div className="container py-5" style={{ maxWidth: 680 }}>
       <h1 className="h3 mb-4">
         TokTickIT <span style={{ color: "#006B3C" }}>IT Service Desk</span>
       </h1>
 
       <RequesterSelector />
+
+      <CreateTicketForm />
 
       <div className="mt-4 border-top pt-4">
         <button
