@@ -1,10 +1,12 @@
 import { useState } from "react";
 import { checkSystem, Category } from "./api.js";
+import { RequesterProvider } from "./context/RequesterContext.js";
+import RequesterSelector from "./components/RequesterSelector.js";
 
 // UI states you must handle for Issue 4: idle, loading, success, error.
 type UiState = "idle" | "loading" | "success" | "error";
 
-export default function App() {
+export function AppContent() {
   const [state, setState] = useState<UiState>("idle");
   const [categories, setCategories] = useState<Category[]>([]);
 
@@ -24,33 +26,50 @@ export default function App() {
   return (
     <div className="container py-5" style={{ maxWidth: 640 }}>
       <h1 className="h3 mb-4">
-        TokTickIT <span className="text-success">IT Service Desk</span>
+        TokTickIT <span style={{ color: "#006B3C" }}>IT Service Desk</span>
       </h1>
 
-      <button className="btn btn-success" onClick={handleCheck} disabled={state === "loading"}>
-        {state === "loading" ? "Loading…" : "Check System"}
-      </button>
+      <RequesterSelector />
 
-      {state === "success" && (
-        <div className="mt-3">
-          <p>System Status: Online</p>
+      <div className="mt-4 border-top pt-4">
+        <button
+          className="btn text-white"
+          style={{ backgroundColor: "#006B3C" }}
+          onClick={handleCheck}
+          disabled={state === "loading"}
+        >
+          {state === "loading" ? "Loading…" : "Check System"}
+        </button>
 
-          <h2 className="h5">Supported Request Categories</h2>
+        {state === "success" && (
+          <div className="mt-3">
+            <p>System Status: Online</p>
 
-          <ol>
-            {categories.map((category) => (
-              <li key={category.id}>{category.name}</li>
-            ))}
-          </ol>
-        </div>
-      )}
+            <h2 className="h5">Supported Request Categories</h2>
 
-      {state === "error" && (
-        <div className="mt-3">
-          <p>System Status: Offline</p>
-          <p>Unable to connect to TokTickIT API</p>
-        </div>
-      )}
+            <ol>
+              {categories.map((category) => (
+                <li key={category.id}>{category.name}</li>
+              ))}
+            </ol>
+          </div>
+        )}
+
+        {state === "error" && (
+          <div className="mt-3">
+            <p>System Status: Offline</p>
+            <p>Unable to connect to TokTickIT API</p>
+          </div>
+        )}
+      </div>
     </div>
+  );
+}
+
+export default function App() {
+  return (
+    <RequesterProvider>
+      <AppContent />
+    </RequesterProvider>
   );
 }

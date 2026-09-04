@@ -1,6 +1,8 @@
 import express, { Request, Response } from "express";
 import cors from "cors";
 import { getPrisma } from "./prisma.js";
+import referenceDataRouter from "./routes/v1/referenceData.js";
+
 // getPrisma() is your lazy database handle. Call it INSIDE a route when you
 // need the DB (Issue 4). It is intentionally unused until then.
 void getPrisma;
@@ -50,4 +52,8 @@ app.get("/api/categories", async (_req: Request, res: Response) => {
     res.status(500).json({ error: "Unable to load request categories" });
   }
 });
+
+// Lab 2 API v1 Routes
+app.use("/api/v1", referenceDataRouter);
+
 export default app;
