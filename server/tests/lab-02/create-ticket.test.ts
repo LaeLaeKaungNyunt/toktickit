@@ -10,8 +10,14 @@ describe("Create Ticket Feature (POST /api/v1/tickets)", () => {
 
   beforeEach(async () => {
     const prisma = getPrisma();
-    const requester = await prisma.developmentRequester.findFirst({
-      where: { isActive: true },
+    const requester = await prisma.developmentRequester.upsert({
+      where: { email: "create.ticket.test@university.edu" },
+      update: { isActive: true },
+      create: {
+        displayName: "Create Ticket Test Requester",
+        email: "create.ticket.test@university.edu",
+        isActive: true,
+      },
     });
     const category = await prisma.category.findFirst();
     const system = await prisma.relatedSystem.findFirst({
@@ -22,7 +28,7 @@ describe("Create Ticket Feature (POST /api/v1/tickets)", () => {
     expect(category).not.toBeNull();
     expect(system).not.toBeNull();
 
-    activeRequesterId = requester!.id;
+    activeRequesterId = requester.id;
     categoryId = category!.id;
     activeRelatedSystemId = system!.id;
   });

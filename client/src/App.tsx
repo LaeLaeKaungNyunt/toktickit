@@ -1,13 +1,16 @@
 import { useState } from "react";
 import { checkSystem, Category } from "./api.js";
-import { RequesterProvider } from "./context/RequesterContext.js";
+import { RequesterProvider, useRequester } from "./context/RequesterContext.js";
 import RequesterSelector from "./components/RequesterSelector.js";
 import CreateTicketForm from "./components/CreateTicketForm.js";
+import MyTickets from "./components/MyTickets.js";
 
-// UI states you must handle for Issue 4: idle, loading, success, error.
 type UiState = "idle" | "loading" | "success" | "error";
+type TabState = "create" | "list";
 
 export function AppContent() {
+  const { selectedRequester } = useRequester();
+  const [activeTab, setActiveTab] = useState<TabState>("create");
   const [state, setState] = useState<UiState>("idle");
   const [categories, setCategories] = useState<Category[]>([]);
 
@@ -25,17 +28,47 @@ export function AppContent() {
   }
 
   return (
-    <div className="container py-5" style={{ maxWidth: 680 }}>
+    <div className="container py-5" style={{ maxWidth: 840 }}>
       <h1 className="h3 mb-4">
         TokTickIT <span style={{ color: "#006B3C" }}>IT Service Desk</span>
       </h1>
 
       <RequesterSelector />
 
-      <CreateTicketForm />
+      {selectedRequester && (
+        <ul className="nav nav-tabs mb-4">
+          <li className="nav-item">
+            <button
+              type="button"
+              className={`nav-link ${activeTab === "create" ? "active fw-bold" : ""}`}
+              style={activeTab === "create" ? { color: "#006B3C" } : {}}
+              onClick={() => setActiveTab("create")}
+            >
+              Create Ticket
+            </button>
+          </li>
+          <li className="nav-item">
+            <button
+              type="button"
+              className={`nav-link ${activeTab === "list" ? "active fw-bold" : ""}`}
+              style={activeTab === "list" ? { color: "#006B3C" } : {}}
+              onClick={() => setActiveTab("list")}
+            >
+              My Tickets
+            </button>
+          </li>
+        </ul>
+      )}
+
+      {(!selectedRequester || activeTab === "create") && <CreateTicketForm />}
+
+      {selectedRequester && activeTab === "list" && (
+        <MyTickets onNavigateToCreateTicket={() => setActiveTab("create")} />
+      )}
 
       <div className="mt-4 border-top pt-4">
         <button
+          type="button"
           className="btn text-white"
           style={{ backgroundColor: "#006B3C" }}
           onClick={handleCheck}

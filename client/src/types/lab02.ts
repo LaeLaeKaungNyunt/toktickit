@@ -58,3 +58,47 @@ export interface CreatedTicketDto {
   createdAt: string;
   updatedAt: string;
 }
+
+export type TicketSortBy = "createdAt" | "ticketNumber" | "requestedPriority";
+export type SortOrder = "asc" | "desc";
+
+export interface MyTicketsQueryParams {
+  search?: string;
+  status?: string;
+  categoryId?: number;
+  relatedSystemId?: string;
+  requestedPriority?: RequestedPriority;
+  sortBy?: TicketSortBy;
+  sortOrder?: SortOrder;
+  page?: number;
+  pageSize?: number;
+}
+
+export interface TicketListItemDto {
+  id: string;
+  ticketNumber: string;
+  summary: string;
+  category: {
+    id: number;
+    name: string;
+  };
+  relatedSystem: {
+    id: string;
+    name: string;
+  };
+  requestedPriority: RequestedPriority;
+  currentStatus: string;
+  createdAt: string;
+}
+
+export interface PaginationMetadata {
+  page: number;
+  pageSize: number;
+  totalItems: number;
+  totalPages: number;
+}
+
+export interface MyTicketsResponseDto {
+  items: TicketListItemDto[];
+  pagination: PaginationMetadata;
+}
