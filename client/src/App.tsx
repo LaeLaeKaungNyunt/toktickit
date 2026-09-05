@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { checkSystem, Category } from "./api.js";
 import { RequesterProvider, useRequester } from "./context/RequesterContext.js";
 import RequesterSelector from "./components/RequesterSelector.js";
 import CreateTicketForm from "./components/CreateTicketForm.js";
 import MyTickets from "./components/MyTickets.js";
+import TicketDetail from "./components/TicketDetail.js";
 
 type UiState = "idle" | "loading" | "success" | "error";
 type TabState = "create" | "list";
@@ -11,8 +12,16 @@ type TabState = "create" | "list";
 export function AppContent() {
   const { selectedRequester } = useRequester();
   const [activeTab, setActiveTab] = useState<TabState>("create");
+  const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
   const [state, setState] = useState<UiState>("idle");
   const [categories, setCategories] = useState<Category[]>([]);
+
+  // Synchronously reset selected ticket detail on requester change (AC-03, BR-06)
+  const prevRequesterIdRef = useRef<string | undefined>(selectedRequester?.id);
+  if (prevRequesterIdRef.current !== selectedRequester?.id) {
+    prevRequesterIdRef.current = selectedRequester?.id;
+    setSelectedTicketId(null);
+  }
 
   async function handleCheck() {
     setState("loading");
@@ -42,7 +51,10 @@ export function AppContent() {
               type="button"
               className={`nav-link ${activeTab === "create" ? "active fw-bold" : ""}`}
               style={activeTab === "create" ? { color: "#006B3C" } : {}}
-              onClick={() => setActiveTab("create")}
+              onClick={() => {
+                setActiveTab("create");
+                setSelectedTicketId(null);
+              }}
             >
               Create Ticket
             </button>
@@ -52,7 +64,10 @@ export function AppContent() {
               type="button"
               className={`nav-link ${activeTab === "list" ? "active fw-bold" : ""}`}
               style={activeTab === "list" ? { color: "#006B3C" } : {}}
-              onClick={() => setActiveTab("list")}
+              onClick={() => {
+                setActiveTab("list");
+                setSelectedTicketId(null);
+              }}
             >
               My Tickets
             </button>
@@ -63,7 +78,20 @@ export function AppContent() {
       {(!selectedRequester || activeTab === "create") && <CreateTicketForm />}
 
       {selectedRequester && activeTab === "list" && (
-        <MyTickets onNavigateToCreateTicket={() => setActiveTab("create")} />
+        selectedTicketId ? (
+          <TicketDetail
+            ticketId={selectedTicketId}
+            onBack={() => setSelectedTicketId(null)}
+          />
+        ) : (
+          <MyTickets
+            onNavigateToCreateTicket={() => {
+              setActiveTab("create");
+              setSelectedTicketId(null);
+            }}
+            onSelectTicket={(ticketId) => setSelectedTicketId(ticketId)}
+          />
+        )
       )}
 
       <div className="mt-4 border-top pt-4">

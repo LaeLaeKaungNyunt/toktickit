@@ -18,14 +18,15 @@ model Category {
 }
 
 model DevelopmentRequester {
-  id           String        @id @default(uuid())
-  displayName  String
-  email        String        @unique
-  isActive     Boolean       @default(true)
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
-  tickets      Ticket[]
-  ticketEvents TicketEvent[]
+  id                 String        @id @default(uuid())
+  displayName        String
+  email              String        @unique
+  isActive           Boolean       @default(true)
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+  tickets            Ticket[]
+  ticketEvents       TicketEvent[]
+  removedAttachments Attachment[]  @relation("AttachmentRemovedBy")
 }
 
 model RelatedSystem {
@@ -54,6 +55,7 @@ model Ticket {
   category          Category             @relation(fields: [categoryId], references: [id])
   relatedSystem     RelatedSystem        @relation(fields: [relatedSystemId], references: [id])
   ticketEvents      TicketEvent[]
+  attachments       Attachment[]
 
   @@index([requesterId, createdAt])
   @@index([requesterId, currentStatus])
@@ -79,4 +81,22 @@ model TicketSequence {
   year      Int      @id
   nextValue Int      @default(1)
   updatedAt DateTime @updatedAt
+}
+
+model Attachment {
+  id                   String                @id @default(uuid())
+  ticketId             String
+  originalFilename     String
+  storedObjectKey      String
+  mimeType             String
+  sizeBytes            Int
+  uploadedAt           DateTime              @default(now())
+  removedAt            DateTime?
+  removalReason        String?
+  removedByRequesterId String?
+
+  ticket               Ticket                @relation(fields: [ticketId], references: [id])
+  removedByRequester   DevelopmentRequester? @relation("AttachmentRemovedBy", fields: [removedByRequesterId], references: [id])
+
+  @@index([ticketId, removedAt])
 }
