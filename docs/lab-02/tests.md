@@ -332,37 +332,37 @@ The following matrix maps every Acceptance Criterion from `specification.md` to 
 
 | AC | Primary Verification |
 |---|---|
-| AC-01 | API + UI test — active Development Requesters are listed |
-| AC-02 | API + UI test — inactive Development Requesters are excluded |
-| AC-03 | UI test — changing Requester updates context and clears stale data |
-| AC-04 | API test — valid reference data is returned for Ticket creation |
-| AC-05 | API/integration test — valid Ticket creation persists exactly one Ticket and Ticket-created Event |
-| AC-06 | API validation test — invalid Category is rejected |
-| AC-07 | API validation test — invalid or inactive Related System is rejected |
-| AC-08 | API + UI validation test — Summary rules are enforced |
-| AC-09 | API + UI validation test — Requested Priority rules are enforced |
-| AC-10 | API + UI validation test — Description rules are enforced |
-| AC-11 | API/integration test — Ticket Number is backend-generated, correctly formatted, unique, and concurrency-safe |
-| AC-12 | API test — My Tickets returns only the current Requester's Tickets |
+| AC-01 | API + UI test — only active Development Requesters are available |
+| AC-02 | UI test — requester-specific workflows remain unavailable until a Requester is selected |
+| AC-03 | UI test — changing Requester updates context, reloads data, and clears stale Ticket data |
+| AC-04 | UI test — Requester API failure displays a safe failure state |
+| AC-05 | API/integration test — valid Ticket creation persists exactly one Ticket with a unique backend-generated Ticket Number, status New, selected owner, and Ticket-created Event |
+| AC-06 | API + UI test — Categories and active Related Systems are populated from PostgreSQL |
+| AC-07 | API + UI validation test — missing or invalid required input is rejected and not persisted |
+| AC-08 | UI test — submitting state prevents duplicate Ticket creation |
+| AC-09 | UI test — recoverable creation failure displays a safe error and preserves entered values |
+| AC-10 | API + UI test — successful creation displays the persisted Ticket information |
+| AC-11 | API + UI test — My Tickets returns only the selected Requester's Tickets |
+| AC-12 | UI test — switching Requesters removes the previous Requester's Tickets and loads the new Requester's Tickets |
 | AC-13 | API + UI test — search works across the documented fields |
-| AC-14 | API + UI test — documented filters work individually and together |
-| AC-15 | API + UI test — documented sorting works |
+| AC-14 | API + UI test — supported filters return only matching Tickets |
+| AC-15 | API + UI test — supported sorting follows the documented deterministic order |
 | AC-16 | API + UI test — pagination and pagination metadata work correctly |
-| AC-17 | UI test — general empty state is displayed correctly |
-| AC-18 | UI test — filtered/search no-results state is distinct from the general empty state |
-| AC-19 | API + UI test — owned Ticket Detail is displayed read-only |
-| AC-20 | API test — another Requester's Ticket cannot be accessed |
-| AC-21 | API test — inaccessible/nonexistent Ticket uses safe not-found behavior |
-| AC-22 | API/integration + UI test — permitted Attachment uploads successfully and creates an Attachment-added Event |
+| AC-17 | UI test — general empty state is displayed when the Requester owns no Tickets |
+| AC-18 | UI test — search/filter no-results state is distinct from the general empty state |
+| AC-19 | API test — invalid list query parameters receive the documented safe response |
+| AC-20 | API + UI test — owned Ticket Detail displays saved Ticket information and active Attachment metadata read-only |
+| AC-21 | API test — another Requester's Ticket cannot be accessed directly or exposed |
+| AC-22 | API/integration + UI test — permitted Attachment upload stores the file and metadata and creates an Attachment-added Event |
 | AC-23 | API + UI test — unsupported type, oversize file, and five-active-Attachment limit are rejected safely |
-| AC-24 | API test — Attachment upload requires ownership of the parent Ticket |
-| AC-25 | API/integration + UI test — valid removal records removal metadata, deletes the binary, and creates an Attachment-removed Event |
-| AC-26 | API test — removed Attachment cannot be retrieved or downloaded |
-| AC-27 | API test — another Requester's Attachment cannot be accessed or modified |
-| AC-28 | UI/component test — loading, validation, submitting, success, empty, no-results, and failure states are represented |
-| AC-29 | Style/responsive test — Zen Green foundation is applied consistently |
-| AC-30 | Responsive test — desktop, tablet, and mobile layouts remain usable without unintended horizontal scrolling |
-| AC-31 | Accessibility/UI test — labels, keyboard interaction, focus, non-color-only meaning, and readable presentation are verified |
+| AC-24 | API/integration test — active Attachment on an owned Ticket can be downloaded |
+| AC-25 | API/integration + UI test — valid removal records removal metadata and removing Requester, deletes the SeaweedFS binary, and creates an Attachment-removed Event |
+| AC-26 | API test — soft-removed Attachment cannot be previewed or downloaded |
+| AC-27 | API test — another Requester's Attachment metadata, download, and removal cannot be accessed |
+| AC-28 | API + UI test — Ticket remains created when a later optional Attachment upload fails and the Attachment failure is reported separately |
+| AC-29 | Style/UI test — Lab 2 Requester screens consistently follow the Zen Green design foundation |
+| AC-30 | Responsive test — desktop, tablet, and mobile workflows remain usable without unintended horizontal scrolling |
+| AC-31 | UI/component test — applicable loading, empty, submitting, success, invalid, no-results, and API failure states are clearly presented |
 
 ### Traceability Rule
 
