@@ -17,9 +17,13 @@ import {
 
 interface MyTicketsProps {
   onNavigateToCreateTicket?: () => void;
+  onSelectTicket?: (ticketId: string) => void;
 }
 
-export default function MyTickets({ onNavigateToCreateTicket }: MyTicketsProps) {
+export default function MyTickets({
+  onNavigateToCreateTicket,
+  onSelectTicket,
+}: MyTicketsProps) {
   const { selectedRequester } = useRequester();
 
   const [tickets, setTickets] = useState<TicketListItemDto[]>([]);
@@ -471,7 +475,11 @@ export default function MyTickets({ onNavigateToCreateTicket }: MyTicketsProps) 
               </thead>
               <tbody>
                 {tickets.map((tkt) => (
-                  <tr key={tkt.id}>
+                  <tr
+                    key={tkt.id}
+                    onClick={() => onSelectTicket?.(tkt.id)}
+                    style={{ cursor: onSelectTicket ? "pointer" : "default" }}
+                  >
                     <td className="fw-bold" style={{ color: "#006B3C" }}>
                       {tkt.ticketNumber}
                     </td>
@@ -504,7 +512,12 @@ export default function MyTickets({ onNavigateToCreateTicket }: MyTicketsProps) 
           {/* Mobile Stacked Card Presentation */}
           <div className="d-block d-md-none">
             {tickets.map((tkt) => (
-              <div key={tkt.id} className="card mb-3 shadow-sm border-0">
+              <div
+                key={tkt.id}
+                className="card mb-3 shadow-sm border-0"
+                onClick={() => onSelectTicket?.(tkt.id)}
+                style={{ cursor: onSelectTicket ? "pointer" : "default" }}
+              >
                 <div className="card-body">
                   <div className="d-flex justify-content-between align-items-center mb-2">
                     <span className="fw-bold" style={{ color: "#006B3C" }}>

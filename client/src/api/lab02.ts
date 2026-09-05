@@ -8,6 +8,10 @@ import {
   ApiErrorResponse,
   MyTicketsQueryParams,
   MyTicketsResponseDto,
+  TicketDetailDto,
+  AttachmentDto,
+  SoftRemoveAttachmentPayload,
+  SoftRemovedAttachmentDto,
 } from "../types/lab02.js";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3000";
@@ -135,5 +139,184 @@ export async function fetchMyTickets(
   }
 
   const data: MyTicketsResponseDto = await res.json();
+  return data;
+}
+
+export async function fetchTicketDetail(
+  ticketId: string,
+  requesterId: string
+): Promise<TicketDetailDto> {
+  const res = await fetch(`${API_URL}/api/v1/tickets/${ticketId}`, {
+    headers: {
+      "X-Dev-Requester-Id": requesterId,
+    },
+  });
+
+  if (!res.ok) {
+    let errorData: ApiErrorResponse | undefined;
+    try {
+      errorData = await res.json();
+    } catch {
+      // Ignored if response is non-JSON
+    }
+
+    const message = errorData?.error?.message ?? "Ticket not found or inaccessible";
+    const error = new Error(message);
+    (error as any).code = errorData?.error?.code;
+    throw error;
+  }
+
+  const data: TicketDetailDto = await res.json();
+  return data;
+}
+
+export async function uploadAttachment(
+  ticketId: string,
+  file: File,
+  requesterId: string
+): Promise<AttachmentDto> {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const res = await fetch(`${API_URL}/api/v1/tickets/${ticketId}/attachments`, {
+    method: "POST",
+    headers: {
+      "X-Dev-Requester-Id": requesterId,
+    },
+    body: formData,
+  });
+
+  if (!res.ok) {
+    let errorData: ApiErrorResponse | undefined;
+    try {
+      errorData = await res.json();
+    } catch {
+      // Ignored if response is non-JSON
+    }
+
+    const message = errorData?.error?.message ?? "Unable to upload Attachment";
+    const error = new Error(message);
+    (error as any).code = errorData?.error?.code;
+    throw error;
+  }
+
+  const data: AttachmentDto = await res.json();
+  return data;
+}
+
+export async function fetchAttachmentMetadata(
+  ticketId: string,
+  attachmentId: string,
+  requesterId: string
+): Promise<AttachmentDto> {
+  const res = await fetch(
+    `${API_URL}/api/v1/tickets/${ticketId}/attachments/${attachmentId}`,
+    {
+      headers: {
+        "X-Dev-Requester-Id": requesterId,
+      },
+    }
+  );
+
+  if (!res.ok) {
+    let errorData: ApiErrorResponse | undefined;
+    try {
+      errorData = await res.json();
+    } catch {
+      // Ignored if response is non-JSON
+    }
+
+    const message = errorData?.error?.message ?? "Attachment not found or inaccessible";
+    const error = new Error(message);
+    (error as any).code = errorData?.error?.code;
+    throw error;
+  }
+
+  const data: AttachmentDto = await res.json();
+  return data;
+}
+
+export async function downloadAttachment(
+  ticketId: string,
+  attachmentId: string,
+  requesterId: string
+): Promise<void> {
+  const res = await fetch(
+    `${API_URL}/api/v1/tickets/${ticketId}/attachments/${attachmentId}/download`,
+    {
+      headers: {
+        "X-Dev-Requester-Id": requesterId,
+      },
+    }
+  );
+
+  if (!res.ok) {
+    let errorData: ApiErrorResponse | undefined;
+    try {
+      errorData = await res.json();
+    } catch {
+      // Ignored if response is non-JSON
+    }
+
+    const message = errorData?.error?.message ?? "Unable to download Attachment";
+    const error = new Error(message);
+    (error as any).code = errorData?.error?.code;
+    throw error;
+  }
+
+  const blob = await res.blob();
+  if (typeof window !== "undefined" && window.URL && window.URL.createObjectURL) {
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    const contentDisposition = res.headers.get("Content-Disposition");
+    let filename = "attachment";
+    if (contentDisposition) {
+      const match = contentDisposition.match(/filename\*?=['"]?(?:UTF-8'')?([^"';]+)['"]?/i);
+      if (match && match[1]) {
+        filename = decodeURIComponent(match[1]);
+      }
+    }
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    window.URL.revokeObjectURL(url);
+  }
+}
+
+export async function softRemoveAttachment(
+  ticketId: string,
+  attachmentId: string,
+  payload: SoftRemoveAttachmentPayload,
+  requesterId: string
+): Promise<SoftRemovedAttachmentDto> {
+  const res = await fetch(
+    `${API_URL}/api/v1/tickets/${ticketId}/attachments/${attachmentId}`,
+    {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Dev-Requester-Id": requesterId,
+      },
+      body: JSON.stringify({ reason: payload.reason }),
+    }
+  );
+
+  if (!res.ok) {
+    let errorData: ApiErrorResponse | undefined;
+    try {
+      errorData = await res.json();
+    } catch {
+      // Ignored if response is non-JSON
+    }
+
+    const message = errorData?.error?.message ?? "Unable to remove Attachment";
+    const error = new Error(message);
+    (error as any).code = errorData?.error?.code;
+    throw error;
+  }
+
+  const data: SoftRemovedAttachmentDto = await res.json();
   return data;
 }

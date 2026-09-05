@@ -102,3 +102,46 @@ export interface MyTicketsResponseDto {
   items: TicketListItemDto[];
   pagination: PaginationMetadata;
 }
+
+export interface AttachmentDto {
+  id: string;
+  originalFilename: string;
+  mimeType: string;
+  sizeBytes: number;
+  uploadedAt: string;
+}
+
+export interface TicketDetailDto {
+  id: string;
+  ticketNumber: string;
+  requester: {
+    id: string;
+    displayName: string;
+  };
+  category: {
+    id: number;
+    name: string;
+  };
+  relatedSystem: {
+    id: string;
+    name: string;
+  };
+  summary: string;
+  requestedPriority: RequestedPriority;
+  description: string;
+  currentStatus: string;
+  createdAt: string;
+  updatedAt: string;
+  attachments: AttachmentDto[];
+}
+
+export interface SoftRemoveAttachmentPayload {
+  reason: string;
+}
+
+export interface SoftRemovedAttachmentDto {
+  id: string;
+  removedAt: string;
+  removalReason: string;
+  removedByRequesterId: string;
+}

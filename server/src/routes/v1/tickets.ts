@@ -1,11 +1,14 @@
 import { Router, Response } from "express";
 import { Prisma } from "@prisma/client";
+import { randomUUID } from "crypto";
+import multer from "multer";
 import { getPrisma } from "../../prisma.js";
 import {
   requesterContextMiddleware,
   AuthenticatedRequesterRequest,
 } from "../../middleware/requesterContext.js";
 import { allocateTicketNumber } from "../../utils/ticketNumber.js";
+import { getStorageService } from "../../services/storage.js";
 
 const router = Router();
 
@@ -16,6 +19,15 @@ const PRIORITY_RANKS: Record<string, number> = {
   High: 3,
   Urgent: 4,
 };
+
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10 MB limit for multer parser
+});
+
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const ALLOWED_MIME_TYPES = ["image/jpeg", "image/png", "image/webp", "application/pdf"];
+const MAX_FILE_SIZE = 5242880; // 5 MB in bytes
 
 // GET /api/v1/tickets (AC-11, AC-12, AC-13, AC-14, AC-15, AC-16, AC-19, BR-06, BR-09, BR-16, BR-17)
 router.get(
@@ -65,7 +77,6 @@ router.get(
 
       let parsedRelatedSystemId: string | undefined;
       if (relatedSystemId !== undefined) {
-        const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
         if (typeof relatedSystemId !== "string" || !UUID_REGEX.test(relatedSystemId.trim())) {
           res.status(400).json({
             error: {
@@ -476,6 +487,529 @@ router.post(
         error: {
           code: "INTERNAL_ERROR",
           message: "Unable to create Ticket",
+        },
+      });
+    }
+  }
+);
+
+// GET /api/v1/tickets/:ticketId (AC-20, AC-21, BR-07, BR-09, BR-10)
+router.get(
+  "/tickets/:ticketId",
+  requesterContextMiddleware,
+  async (req: AuthenticatedRequesterRequest, res: Response) => {
+    try {
+      const prisma = getPrisma();
+      const requesterId = req.devRequester!.id;
+      const { ticketId } = req.params;
+
+      if (!UUID_REGEX.test(ticketId)) {
+        res.status(404).json({
+          error: {
+            code: "NOT_FOUND",
+            message: "Ticket not found or inaccessible",
+          },
+        });
+        return;
+      }
+
+      const ticket = await prisma.ticket.findFirst({
+        where: {
+          id: ticketId,
+          requesterId, // Hardcoded ticket ownership check
+        },
+        include: {
+          requester: true,
+          category: true,
+          relatedSystem: true,
+          attachments: {
+            where: {
+              removedAt: null, // Active attachments only
+            },
+            orderBy: {
+              uploadedAt: "asc",
+            },
+          },
+        },
+      });
+
+      if (!ticket) {
+        res.status(404).json({
+          error: {
+            code: "NOT_FOUND",
+            message: "Ticket not found or inaccessible",
+          },
+        });
+        return;
+      }
+
+      res.status(200).json({
+        id: ticket.id,
+        ticketNumber: ticket.ticketNumber,
+        requester: {
+          id: ticket.requester.id,
+          displayName: ticket.requester.displayName,
+        },
+        category: {
+          id: ticket.category.id,
+          name: ticket.category.name,
+        },
+        relatedSystem: {
+          id: ticket.relatedSystem.id,
+          name: ticket.relatedSystem.name,
+        },
+        summary: ticket.summary,
+        requestedPriority: ticket.requestedPriority,
+        description: ticket.description,
+        currentStatus: ticket.currentStatus,
+        createdAt: ticket.createdAt.toISOString(),
+        updatedAt: ticket.updatedAt.toISOString(),
+        attachments: ticket.attachments.map((att) => ({
+          id: att.id,
+          originalFilename: att.originalFilename,
+          mimeType: att.mimeType,
+          sizeBytes: att.sizeBytes,
+          uploadedAt: att.uploadedAt.toISOString(),
+        })),
+      });
+    } catch {
+      res.status(500).json({
+        error: {
+          code: "INTERNAL_ERROR",
+          message: "Unable to retrieve Ticket Detail",
+        },
+      });
+    }
+  }
+);
+
+// POST /api/v1/tickets/:ticketId/attachments (AC-22, AC-23, AC-24, BR-20, BR-21, BR-22, BR-23, BR-24, BR-29, BR-33)
+router.post(
+  "/tickets/:ticketId/attachments",
+  requesterContextMiddleware,
+  (req: AuthenticatedRequesterRequest, res: Response) => {
+    upload.single("file")(req, res, async (err: any) => {
+      if (err) {
+        if (err.code === "LIMIT_FILE_SIZE") {
+          res.status(413).json({
+            error: {
+              code: "PAYLOAD_TOO_LARGE",
+              message: "File size exceeds 5 MB limit.",
+            },
+          });
+          return;
+        }
+        res.status(400).json({
+          error: {
+            code: "VALIDATION_ERROR",
+            message: "Invalid upload request.",
+          },
+        });
+        return;
+      }
+
+      try {
+        const prisma = getPrisma();
+        const requesterId = req.devRequester!.id;
+        const { ticketId } = req.params;
+
+        if (!UUID_REGEX.test(ticketId)) {
+          res.status(404).json({
+            error: {
+              code: "NOT_FOUND",
+              message: "Ticket not found or inaccessible",
+            },
+          });
+          return;
+        }
+
+        // Verify ticket ownership
+        const ticket = await prisma.ticket.findFirst({
+          where: { id: ticketId, requesterId },
+        });
+
+        if (!ticket) {
+          res.status(404).json({
+            error: {
+              code: "NOT_FOUND",
+              message: "Ticket not found or inaccessible",
+            },
+          });
+          return;
+        }
+
+        if (!req.file) {
+          res.status(400).json({
+            error: {
+              code: "VALIDATION_ERROR",
+              message: "File is required.",
+            },
+          });
+          return;
+        }
+
+        // Validate MIME type
+        if (!ALLOWED_MIME_TYPES.includes(req.file.mimetype)) {
+          res.status(415).json({
+            error: {
+              code: "UNSUPPORTED_MEDIA_TYPE",
+              message: "Allowed file types are JPG, PNG, WEBP, and PDF.",
+            },
+          });
+          return;
+        }
+
+        // Validate file size
+        if (req.file.size > MAX_FILE_SIZE) {
+          res.status(413).json({
+            error: {
+              code: "PAYLOAD_TOO_LARGE",
+              message: "File size exceeds 5 MB limit.",
+            },
+          });
+          return;
+        }
+
+        // Validate active attachments count (max 5 active)
+        const activeCount = await (prisma as any).attachment.count({
+          where: { ticketId, removedAt: null },
+        });
+
+        if (activeCount >= 5) {
+          res.status(409).json({
+            error: {
+              code: "ATTACHMENT_LIMIT_EXCEEDED",
+              message: "Ticket cannot have more than 5 active attachments.",
+            },
+          });
+          return;
+        }
+
+        // Safe storage object key independent of original filename
+        const storedObjectKey = `attachments/${randomUUID()}`;
+        const storageService = getStorageService();
+
+        // 1. Storage binary upload FIRST
+        await storageService.uploadFile(
+          storedObjectKey,
+          req.file.buffer,
+          req.file.mimetype
+        );
+
+        // 2. PostgreSQL transaction SECOND
+        let attachment;
+        try {
+          attachment = await prisma.$transaction(async (tx) => {
+            const att = await (tx as any).attachment.create({
+              data: {
+                ticketId,
+                originalFilename: req.file!.originalname,
+                storedObjectKey,
+                mimeType: req.file!.mimetype,
+                sizeBytes: req.file!.size,
+              },
+            });
+
+            await tx.ticketEvent.create({
+              data: {
+                ticketId,
+                actorId: requesterId,
+                eventType: "ATTACHMENT_ADDED",
+                payloadJson: {
+                  attachmentId: att.id,
+                  originalFilename: att.originalFilename,
+                  mimeType: att.mimeType,
+                  sizeBytes: att.sizeBytes,
+                },
+              },
+            });
+
+            return att;
+          });
+        } catch {
+          // DB Transaction failed -> Clean up uploaded binary object from storage
+          try {
+            await storageService.deleteFile(storedObjectKey);
+          } catch {
+            // Ignore storage deletion error during cleanup
+          }
+          res.status(500).json({
+            error: {
+              code: "INTERNAL_ERROR",
+              message: "Unable to upload Attachment",
+            },
+          });
+          return;
+        }
+
+        res.status(201).json({
+          id: attachment.id,
+          originalFilename: attachment.originalFilename,
+          mimeType: attachment.mimeType,
+          sizeBytes: attachment.sizeBytes,
+          uploadedAt: attachment.uploadedAt.toISOString(),
+        });
+      } catch {
+        res.status(500).json({
+          error: {
+            code: "INTERNAL_ERROR",
+            message: "Unable to upload Attachment",
+          },
+        });
+      }
+    });
+  }
+);
+
+// GET /api/v1/tickets/:ticketId/attachments/:attachmentId (AC-24, AC-26, AC-27, BR-25)
+router.get(
+  "/tickets/:ticketId/attachments/:attachmentId",
+  requesterContextMiddleware,
+  async (req: AuthenticatedRequesterRequest, res: Response) => {
+    try {
+      const prisma = getPrisma();
+      const requesterId = req.devRequester!.id;
+      const { ticketId, attachmentId } = req.params;
+
+      if (!UUID_REGEX.test(ticketId) || !UUID_REGEX.test(attachmentId)) {
+        res.status(404).json({
+          error: {
+            code: "NOT_FOUND",
+            message: "Attachment not found or inaccessible",
+          },
+        });
+        return;
+      }
+
+      const attachment = await (prisma as any).attachment.findFirst({
+        where: {
+          id: attachmentId,
+          ticketId,
+          removedAt: null, // Active attachments only
+          ticket: {
+            requesterId, // Hardcoded ticket ownership
+          },
+        },
+      });
+
+      if (!attachment) {
+        res.status(404).json({
+          error: {
+            code: "NOT_FOUND",
+            message: "Attachment not found or inaccessible",
+          },
+        });
+        return;
+      }
+
+      res.status(200).json({
+        id: attachment.id,
+        originalFilename: attachment.originalFilename,
+        mimeType: attachment.mimeType,
+        sizeBytes: attachment.sizeBytes,
+        uploadedAt: attachment.uploadedAt.toISOString(),
+      });
+    } catch {
+      res.status(500).json({
+        error: {
+          code: "INTERNAL_ERROR",
+          message: "Unable to retrieve Attachment metadata",
+        },
+      });
+    }
+  }
+);
+
+// GET /api/v1/tickets/:ticketId/attachments/:attachmentId/download (AC-24, AC-26, AC-27, BR-25)
+router.get(
+  "/tickets/:ticketId/attachments/:attachmentId/download",
+  requesterContextMiddleware,
+  async (req: AuthenticatedRequesterRequest, res: Response) => {
+    try {
+      const prisma = getPrisma();
+      const requesterId = req.devRequester!.id;
+      const { ticketId, attachmentId } = req.params;
+
+      if (!UUID_REGEX.test(ticketId) || !UUID_REGEX.test(attachmentId)) {
+        res.status(404).json({
+          error: {
+            code: "NOT_FOUND",
+            message: "Attachment not found or inaccessible",
+          },
+        });
+        return;
+      }
+
+      const attachment = await (prisma as any).attachment.findFirst({
+        where: {
+          id: attachmentId,
+          ticketId,
+          removedAt: null, // Active attachments only
+          ticket: {
+            requesterId, // Hardcoded ticket ownership
+          },
+        },
+      });
+
+      if (!attachment) {
+        res.status(404).json({
+          error: {
+            code: "NOT_FOUND",
+            message: "Attachment not found or inaccessible",
+          },
+        });
+        return;
+      }
+
+      const storageService = getStorageService();
+      let fileResult;
+      try {
+        fileResult = await storageService.getFileStream(attachment.storedObjectKey);
+      } catch {
+        res.status(404).json({
+          error: {
+            code: "NOT_FOUND",
+            message: "Attachment binary file not found",
+          },
+        });
+        return;
+      }
+
+      const encodedFilename = encodeURIComponent(attachment.originalFilename);
+      res.setHeader("Content-Type", attachment.mimeType);
+      res.setHeader("Content-Length", attachment.sizeBytes);
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename="${attachment.originalFilename}"; filename*=UTF-8''${encodedFilename}`
+      );
+
+      fileResult.stream.pipe(res);
+    } catch {
+      res.status(500).json({
+        error: {
+          code: "INTERNAL_ERROR",
+          message: "Unable to download Attachment",
+        },
+      });
+    }
+  }
+);
+
+// DELETE /api/v1/tickets/:ticketId/attachments/:attachmentId (AC-25, AC-26, AC-27, BR-26, BR-27, BR-28, BR-29, BR-32, BR-33, BR-35)
+router.delete(
+  "/tickets/:ticketId/attachments/:attachmentId",
+  requesterContextMiddleware,
+  async (req: AuthenticatedRequesterRequest, res: Response) => {
+    try {
+      const prisma = getPrisma();
+      const requesterId = req.devRequester!.id;
+      const { ticketId, attachmentId } = req.params;
+
+      if (!UUID_REGEX.test(ticketId) || !UUID_REGEX.test(attachmentId)) {
+        res.status(404).json({
+          error: {
+            code: "NOT_FOUND",
+            message: "Attachment not found or inaccessible",
+          },
+        });
+        return;
+      }
+
+      const { reason } = req.body ?? {};
+      const trimmedReason = typeof reason === "string" ? reason.trim() : "";
+      if (!trimmedReason) {
+        res.status(400).json({
+          error: {
+            code: "VALIDATION_ERROR",
+            message: "Removal reason is required.",
+          },
+        });
+        return;
+      }
+
+      const attachment = await (prisma as any).attachment.findFirst({
+        where: {
+          id: attachmentId,
+          ticketId,
+          removedAt: null, // Active attachments only
+          ticket: {
+            requesterId, // Hardcoded ticket ownership
+          },
+        },
+      });
+
+      if (!attachment) {
+        res.status(404).json({
+          error: {
+            code: "NOT_FOUND",
+            message: "Attachment not found or inaccessible",
+          },
+        });
+        return;
+      }
+
+      // Step 1: Storage binary deletion FIRST
+      const storageService = getStorageService();
+      try {
+        await storageService.deleteFile(attachment.storedObjectKey);
+      } catch {
+        res.status(500).json({
+          error: {
+            code: "INTERNAL_ERROR",
+            message: "Unable to delete attachment storage object.",
+          },
+        });
+        return;
+      }
+
+      // Step 2: PostgreSQL transaction SECOND
+      let updatedAttachment;
+      try {
+        updatedAttachment = await prisma.$transaction(async (tx) => {
+          const updated = await (tx as any).attachment.update({
+            where: { id: attachment.id },
+            data: {
+              removedAt: new Date(),
+              removalReason: trimmedReason,
+              removedByRequesterId: requesterId,
+            },
+          });
+
+          await tx.ticketEvent.create({
+            data: {
+              ticketId,
+              actorId: requesterId,
+              eventType: "ATTACHMENT_REMOVED",
+              payloadJson: {
+                attachmentId: attachment.id,
+                removalReason: trimmedReason,
+              },
+            },
+          });
+
+          return updated;
+        });
+      } catch {
+        res.status(500).json({
+          error: {
+            code: "INTERNAL_ERROR",
+            message: "Unable to complete attachment soft removal.",
+          },
+        });
+        return;
+      }
+
+      res.status(200).json({
+        id: updatedAttachment.id,
+        removedAt: updatedAttachment.removedAt.toISOString(),
+        removalReason: updatedAttachment.removalReason,
+        removedByRequesterId: updatedAttachment.removedByRequesterId,
+      });
+    } catch {
+      res.status(500).json({
+        error: {
+          code: "INTERNAL_ERROR",
+          message: "Unable to remove Attachment",
         },
       });
     }
