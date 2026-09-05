@@ -10,18 +10,93 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// ---------------------------------------------------------------------------
-// Issue 3 — Create and seed IT request categories
-// Define a Category model with:
-//   id        Int      @id @default(autoincrement())
-//   name      String   @unique
-//   createdAt DateTime @default(now())
-// Then run:  npx prisma migrate dev --name init
-// TODO(Issue 3): add the Category model below.
-// ---------------------------------------------------------------------------
-
 model Category {
   id        Int      @id @default(autoincrement())
   name      String   @unique
   createdAt DateTime @default(now())
+  tickets   Ticket[]
+}
+
+model DevelopmentRequester {
+  id                 String        @id @default(uuid())
+  displayName        String
+  email              String        @unique
+  isActive           Boolean       @default(true)
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+  tickets            Ticket[]
+  ticketEvents       TicketEvent[]
+  removedAttachments Attachment[]  @relation("AttachmentRemovedBy")
+}
+
+model RelatedSystem {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  tickets   Ticket[]
+}
+
+model Ticket {
+  id                String               @id @default(uuid())
+  ticketNumber      String               @unique
+  requesterId       String
+  categoryId        Int
+  relatedSystemId   String
+  summary           String
+  description       String
+  requestedPriority String               // Low | Medium | High | Urgent
+  currentStatus     String               @default("New")
+  createdAt         DateTime             @default(now())
+  updatedAt         DateTime             @updatedAt
+
+  requester         DevelopmentRequester @relation(fields: [requesterId], references: [id])
+  category          Category             @relation(fields: [categoryId], references: [id])
+  relatedSystem     RelatedSystem        @relation(fields: [relatedSystemId], references: [id])
+  ticketEvents      TicketEvent[]
+  attachments       Attachment[]
+
+  @@index([requesterId, createdAt])
+  @@index([requesterId, currentStatus])
+  @@index([categoryId])
+  @@index([relatedSystemId])
+}
+
+model TicketEvent {
+  id          String                @id @default(uuid())
+  ticketId    String
+  actorId     String?
+  eventType   String                // e.g. TICKET_CREATED
+  payloadJson Json?
+  createdAt   DateTime              @default(now())
+
+  ticket      Ticket                @relation(fields: [ticketId], references: [id])
+  actor       DevelopmentRequester? @relation(fields: [actorId], references: [id])
+
+  @@index([ticketId, createdAt])
+}
+
+model TicketSequence {
+  year      Int      @id
+  nextValue Int      @default(1)
+  updatedAt DateTime @updatedAt
+}
+
+model Attachment {
+  id                   String                @id @default(uuid())
+  ticketId             String
+  originalFilename     String
+  storedObjectKey      String
+  mimeType             String
+  sizeBytes            Int
+  uploadedAt           DateTime              @default(now())
+  removedAt            DateTime?
+  removalReason        String?
+  removedByRequesterId String?
+
+  ticket               Ticket                @relation(fields: [ticketId], references: [id])
+  removedByRequester   DevelopmentRequester? @relation("AttachmentRemovedBy", fields: [removedByRequesterId], references: [id])
+
+  @@index([ticketId, removedAt])
 }
