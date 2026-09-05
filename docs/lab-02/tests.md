@@ -326,7 +326,24 @@ Tests or automated accessibility checks shall verify where practical that:
 - disabled controls are distinguishable;
 - readable contrast is maintained for key text and interactive elements.
 
-## 8. Acceptance Criteria Traceability
+## 8. Planned-Test Table
+
+| Test ID | Type | Requirement / AC | What It Tests | Expected Result | Automated Test File | Final |
+|---|---|---|---|---|---|---|
+| API-01 | API | AC-01, AC-04 | Development Requester reference data and active-only behavior | Valid active requesters returned; failures handled safely | `server/tests/lab-02/reference-data.test.ts` | Pass |
+| API-02 | API | AC-02, AC-03 | Requester context validation and switching | Valid requester accepted; invalid context rejected safely | `server/tests/lab-02/requester-context.test.ts` | Pass |
+| API-03 | API | AC-05–AC-10 | Create Ticket rules, validation, persistence, Ticket Number and events | Valid ticket created once with correct persisted values; invalid requests rejected | `server/tests/lab-02/create-ticket.test.ts` | Pass |
+| API-04 | API | AC-11–AC-19 | My Tickets ownership, search, filter, sort and pagination | Only owned tickets returned with correct query behavior | `server/tests/lab-02/my-tickets.test.ts` | Pass |
+| API-05 | API | AC-20, AC-21 | Ticket Detail and ownership isolation | Owned ticket returned read-only; non-owner access rejected | `server/tests/lab-02/ticket-detail.test.ts` | Pass |
+| API-06 | API / Integration | AC-22–AC-28 | Attachment upload, download, validation, removal and ownership | Permitted operations succeed; invalid, removed and unauthorized access rejected | `server/tests/lab-02/attachment.test.ts` | Pass |
+| API-07 | Integration | Reference-data rules | Seed data and repeatability | Required reference data exists without duplicates after repeated seed | `server/tests/lab-02/seed.test.ts` | Pass |
+| UI-01 | UI | AC-01–AC-04 | Development Requester selector and requester state | Active requesters shown and requester context handled correctly | `client/tests/lab-02/RequesterSelector.test.tsx` | Pass |
+| UI-02 | UI | AC-05–AC-10, AC-28 | Create Ticket form states and validation | Form validates, prevents duplicate submission and handles success/failure correctly | `client/tests/lab-02/CreateTicketForm.test.tsx` | Pass |
+| UI-03 | UI | AC-11–AC-18 | My Tickets list behavior | Ownership, search, filters, sorting, pagination, empty and no-results states work | `client/tests/lab-02/MyTickets.test.tsx` | Pass |
+| UI-04 | UI | AC-20, AC-22–AC-27 | Ticket Detail and Attachment UI | Owned detail and attachment actions behave correctly and safely | `client/tests/lab-02/TicketDetail.test.tsx` | Pass |
+| UI-05 | Style / Responsive | AC-29–AC-31 | Zen Green, responsive layout and UI states | Required visual foundation and responsive/state behavior are verified | `client/tests/lab-02/CreateTicketForm.test.tsx`, `MyTickets.test.tsx`, `TicketDetail.test.tsx` | Pass |
+
+## 9. Acceptance Criteria Traceability
 
 The following matrix maps every Acceptance Criterion from `specification.md` to its primary automated verification.
 
@@ -370,7 +387,7 @@ If an Acceptance Criterion changes during implementation, the corresponding test
 
 No Acceptance Criterion may be marked complete solely from visual inspection when an automated verification is practical.
 
-## 9. Test Completion and Evidence
+## 10. Test Completion and Evidence
 
 A Lab 2 feature shall be considered verified only when its required automated tests pass and its mapped Acceptance Criteria have been checked.
 
