@@ -1,6 +1,6 @@
 # TokTickIT
 
-TokTickIT is an IT service desk application for Lab 1 of the Software Engineering course.
+TokTickIT is an IT service desk application developed for the Software Engineering course. Lab 2 extends the project with requester ticketing, ticket management, attachments, and the Zen Green UI foundation.
 
 ## Technology Stack
 
@@ -15,13 +15,15 @@ TokTickIT is an IT service desk application for Lab 1 of the Software Engineerin
 - Express
 - TypeScript
 
-### Database
+### Database and Storage
 - PostgreSQL
 - Prisma
+- SeaweedFS
 
 ### Testing
 - Vitest
 - Supertest
+- Playwright
 
 ## Prerequisites
 
@@ -29,6 +31,7 @@ Before running the project, install:
 
 - Node.js and npm
 - PostgreSQL
+- SeaweedFS
 
 ## Setup
 
@@ -72,11 +75,30 @@ The frontend runs at http://localhost:5173.
 
 The backend runs at http://localhost:3000.
 
-## Database
+### SeaweedFS
+
+Start SeaweedFS for attachment storage:
+
+    weed mini
+
+SeaweedFS provides the object storage used for Lab 2 ticket attachments.
+
+## Database and Environment
 
 The backend uses PostgreSQL with Prisma.
 
-Copy `server/.env.example` to `server/.env` and configure `DATABASE_URL` for your local PostgreSQL database.
+Copy `server/.env.example` to `server/.env` and configure the required environment variables, including:
+
+- `DATABASE_URL`
+- `SEAWEEDFS_S3_ENDPOINT`
+- `SEAWEEDFS_BUCKET`
+- `AWS_REGION`
+
+Run the Prisma migration and seed data before starting the application:
+
+    cd server
+    npm run prisma:migrate
+    npm run prisma:seed
 
 Do not commit the real `.env` file.
 
@@ -92,6 +114,17 @@ To run the backend tests:
     cd server
     npm test
 
-## Lab 1
+## Lab 2
 
-Lab 1 features are implemented incrementally through separate Issues, feature branches, Pull Requests, and peer review.
+Lab 2 implements the requester ticketing MVP with:
+
+- Development Requester selection
+- Create Ticket
+- My Tickets with search, filter, sort, and pagination
+- Ticket Detail
+- Attachment upload, download, and soft removal
+- Requester ownership isolation
+- Zen Green responsive UI
+- Automated frontend and backend tests
+
+Lab 2 was developed using separate Issues, feature branches, Pull Requests, peer review, and final integration through `lab2-staging` into `main`.
