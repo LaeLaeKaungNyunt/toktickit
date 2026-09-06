@@ -363,3 +363,17 @@ Lab 2 shall apply basic accessibility and interaction practices across all Reque
 - Primary actions shall use consistent placement and styling where practical.
 - Destructive actions such as Attachment removal shall be visually distinguishable from normal actions and require confirmation.
 - Loading, success, validation, and failure feedback shall use consistent patterns throughout the application.
+
+## 9. Visual Verification Checklist
+
+Final visual verification was completed on the integrated Lab 2 application.
+
+- [x] Zen Green primary, secondary, and pale-green colors are applied consistently.
+- [x] Editable and read-only fields are visually distinguishable.
+- [x] Validation messages appear beside or below the relevant fields.
+- [x] Primary, secondary, and destructive actions have clear visual hierarchy.
+- [x] Desktop layout displays without unintended clipping or overlap.
+- [x] Tablet layout adapts without unintended clipping or overlap.
+- [x] Mobile layout stacks content and controls appropriately.
+- [x] Long text and attachment content remain readable at supported widths.
+- [x] No unintended horizontal page scrolling occurs on desktop, tablet, or mobile.
