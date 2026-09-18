@@ -1,28 +1,23 @@
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import React, { useEffect } from "react";
+import React from "react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import TicketDetail from "../../src/components/TicketDetail.js";
-import { RequesterProvider, useRequester } from "../../src/context/RequesterContext.js";
 import * as api from "../../src/api/lab02.js";
+import * as authContext from "../../src/context/AuthContext.js";
 import {
-  DevelopmentRequester,
   TicketDetailDto,
   AttachmentDto,
 } from "../../src/types/lab02.js";
 
 vi.mock("../../src/api/lab02.js");
 
-const mockRequesterA: DevelopmentRequester = {
+const mockUser = {
   id: "req-1111",
-  displayName: "Jane Doe",
+  name: "Jane Doe",
   email: "jane@university.edu",
-};
-
-const mockRequesterB: DevelopmentRequester = {
-  id: "req-2222",
-  displayName: "Bob Smith",
-  email: "bob@university.edu",
+  role: "Requester" as const,
+  mustChangePassword: false,
 };
 
 const mockActiveAttachment: AttachmentDto = {
@@ -57,65 +52,28 @@ const mockTicketDetail: TicketDetailDto = {
   attachments: [mockActiveAttachment],
 };
 
-function TestWrapper({
-  initialRequester = mockRequesterA,
-  ticketId = "tkt-1234",
-  onBack,
-}: {
-  initialRequester?: DevelopmentRequester | null;
-  ticketId?: string;
-  onBack?: () => void;
-}) {
-  const { setSelectedRequester } = useRequester();
-
-  useEffect(() => {
-    setSelectedRequester(initialRequester);
-  }, [initialRequester?.id]);
-
-  return (
-    <div>
-      <button
-        data-testid="set-requester-a"
-        onClick={() => setSelectedRequester(mockRequesterA)}
-      >
-        Set Requester A
-      </button>
-      <button
-        data-testid="set-requester-b"
-        onClick={() => setSelectedRequester(mockRequesterB)}
-      >
-        Set Requester B
-      </button>
-      <button
-        data-testid="clear-requester"
-        onClick={() => setSelectedRequester(null)}
-      >
-        Clear Requester
-      </button>
-      <TicketDetail ticketId={ticketId} onBack={onBack} />
-    </div>
-  );
-}
-
 function renderWithRequester(
-  requester: DevelopmentRequester | null = mockRequesterA,
   ticketId: string = "tkt-1234",
   onBack?: () => void
 ) {
   return render(
-    <RequesterProvider>
-      <TestWrapper
-        initialRequester={requester}
-        ticketId={ticketId}
-        onBack={onBack}
-      />
-    </RequesterProvider>
+    <TicketDetail ticketId={ticketId} onBack={onBack} />
   );
 }
 
 describe("TicketDetail Component (Issue #15)", () => {
   beforeEach(() => {
     vi.resetAllMocks();
+    vi.spyOn(authContext, "useAuth").mockReturnValue({
+      user: mockUser,
+      token: "mock-jwt-token",
+      loading: false,
+      error: null,
+      login: vi.fn(),
+      logout: vi.fn(),
+      changePassword: vi.fn(),
+      clearError: vi.fn(),
+    });
     vi.mocked(api.fetchTicketDetail).mockResolvedValue(mockTicketDetail);
     vi.mocked(api.uploadAttachment).mockResolvedValue({
       id: "att-002",
@@ -134,7 +92,7 @@ describe("TicketDetail Component (Issue #15)", () => {
 
   describe("AC-20: Read-Only Ticket Detail & Active Attachments", () => {
     it("renders complete saved ticket information and active attachment metadata read-only", async () => {
-      renderWithRequester(mockRequesterA, "tkt-1234");
+      renderWithRequester("tkt-1234");
 
       await waitFor(() => {
         expect(screen.getByText("TKT-2026-00001")).toBeInTheDocument();
@@ -162,7 +120,7 @@ describe("TicketDetail Component (Issue #15)", () => {
         attachments: [],
       });
 
-      renderWithRequester(mockRequesterA, "tkt-1234");
+      renderWithRequester("tkt-1234");
 
       await waitFor(() => {
         expect(screen.getByText("TKT-2026-00001")).toBeInTheDocument();
@@ -174,7 +132,7 @@ describe("TicketDetail Component (Issue #15)", () => {
 
   describe("AC-22 & AC-23: Attachment Upload UI", () => {
     it("AC-22: handles permitted file upload with busy state and success feedback", async () => {
-      renderWithRequester(mockRequesterA, "tkt-1234");
+      renderWithRequester("tkt-1234");
 
       await waitFor(() => {
         expect(screen.getByText("TKT-2026-00001")).toBeInTheDocument();
@@ -194,7 +152,7 @@ describe("TicketDetail Component (Issue #15)", () => {
         expect(api.uploadAttachment).toHaveBeenCalledWith(
           "tkt-1234",
           expect.any(File),
-          "req-1111"
+          "mock-jwt-token"
         );
       });
 
@@ -202,7 +160,7 @@ describe("TicketDetail Component (Issue #15)", () => {
     });
 
     it("AC-23: validates unsupported file type before calling API", async () => {
-      renderWithRequester(mockRequesterA, "tkt-1234");
+      renderWithRequester("tkt-1234");
 
       await waitFor(() => {
         expect(screen.getByText("TKT-2026-00001")).toBeInTheDocument();
@@ -223,7 +181,7 @@ describe("TicketDetail Component (Issue #15)", () => {
     });
 
     it("AC-23: validates file size exceeding 5 MB before calling API", async () => {
-      renderWithRequester(mockRequesterA, "tkt-1234");
+      renderWithRequester("tkt-1234");
 
       await waitFor(() => {
         expect(screen.getByText("TKT-2026-00001")).toBeInTheDocument();
@@ -258,7 +216,7 @@ describe("TicketDetail Component (Issue #15)", () => {
         attachments: fiveAttachments,
       });
 
-      renderWithRequester(mockRequesterA, "tkt-1234");
+      renderWithRequester("tkt-1234");
 
       await waitFor(() => {
         expect(screen.getByText("TKT-2026-00001")).toBeInTheDocument();
@@ -274,7 +232,7 @@ describe("TicketDetail Component (Issue #15)", () => {
         new Error("Attachment upload failed due to storage error")
       );
 
-      renderWithRequester(mockRequesterA, "tkt-1234");
+      renderWithRequester("tkt-1234");
 
       await waitFor(() => {
         expect(screen.getByText("TKT-2026-00001")).toBeInTheDocument();
@@ -298,7 +256,7 @@ describe("TicketDetail Component (Issue #15)", () => {
 
   describe("AC-24: Download Action", () => {
     it("provides Download action for active attachments and triggers API download function", async () => {
-      renderWithRequester(mockRequesterA, "tkt-1234");
+      renderWithRequester("tkt-1234");
 
       await waitFor(() => {
         expect(screen.getByText("error-screenshot.png")).toBeInTheDocument();
@@ -307,13 +265,13 @@ describe("TicketDetail Component (Issue #15)", () => {
       const downloadButton = screen.getByRole("button", { name: /Download|Download file/i });
       fireEvent.click(downloadButton);
 
-      expect(api.downloadAttachment).toHaveBeenCalledWith("tkt-1234", "att-001", "req-1111");
+      expect(api.downloadAttachment).toHaveBeenCalledWith("tkt-1234", "att-001", "mock-jwt-token");
     });
   });
 
   describe("AC-25: Soft Removal UI & Confirmation Modal", () => {
     it("opens removal modal, enforces required non-empty removal reason, and submits valid removal", async () => {
-      renderWithRequester(mockRequesterA, "tkt-1234");
+      renderWithRequester("tkt-1234");
 
       await waitFor(() => {
         expect(screen.getByText("error-screenshot.png")).toBeInTheDocument();
@@ -344,7 +302,7 @@ describe("TicketDetail Component (Issue #15)", () => {
           "tkt-1234",
           "att-001",
           { reason: "Uploaded wrong screenshot" },
-          "req-1111"
+          "mock-jwt-token"
         );
       });
 
@@ -358,7 +316,7 @@ describe("TicketDetail Component (Issue #15)", () => {
         new Error("Ticket not found or inaccessible")
       );
 
-      renderWithRequester(mockRequesterA, "unauthorized-tkt-id");
+      renderWithRequester("unauthorized-tkt-id");
 
       await waitFor(() => {
         expect(screen.getByText(/Ticket not found or inaccessible/i)).toBeInTheDocument();
@@ -368,26 +326,9 @@ describe("TicketDetail Component (Issue #15)", () => {
     });
   });
 
-  describe("AC-03 & BR-06: Development Requester Switching State Clearance", () => {
-    it("clears active ticket detail and attachment data immediately when requester changes", async () => {
-      renderWithRequester(mockRequesterA, "tkt-1234");
-
-      await waitFor(() => {
-        expect(screen.getByText("TKT-2026-00001")).toBeInTheDocument();
-      });
-
-      // Switch requester to B
-      await userEvent.click(screen.getByTestId("set-requester-b"));
-
-      // Active ticket detail data should be cleared immediately
-      expect(screen.queryByText("TKT-2026-00001")).not.toBeInTheDocument();
-      expect(screen.queryByText("error-screenshot.png")).not.toBeInTheDocument();
-    });
-  });
-
   describe("AC-29, AC-30, AC-31: Zen Green Foundation, Responsive Layout & Accessibility", () => {
     it("applies Zen Green visual tokens and responsive container styling", async () => {
-      renderWithRequester(mockRequesterA, "tkt-1234");
+      renderWithRequester("tkt-1234");
 
       await waitFor(() => {
         expect(screen.getByText("TKT-2026-00001")).toBeInTheDocument();
@@ -403,7 +344,7 @@ describe("TicketDetail Component (Issue #15)", () => {
     });
 
     it("supports keyboard interaction and focus management for removal modal", async () => {
-      renderWithRequester(mockRequesterA, "tkt-1234");
+      renderWithRequester("tkt-1234");
 
       await waitFor(() => {
         expect(screen.getByText("error-screenshot.png")).toBeInTheDocument();

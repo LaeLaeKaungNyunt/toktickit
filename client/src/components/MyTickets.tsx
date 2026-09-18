@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import { useRequester } from "../context/RequesterContext.js";
+import { useAuth } from "../context/AuthContext.js";
 import {
   fetchMyTickets,
   fetchCategoriesV1,
@@ -24,7 +24,7 @@ export default function MyTickets({
   onNavigateToCreateTicket,
   onSelectTicket,
 }: MyTicketsProps) {
-  const { selectedRequester } = useRequester();
+  const { user, token } = useAuth();
 
   const [tickets, setTickets] = useState<TicketListItemDto[]>([]);
   const [pagination, setPagination] = useState<PaginationMetadata>({
@@ -55,10 +55,10 @@ export default function MyTickets({
   const [page, setPage] = useState<number>(1);
   const [retryTrigger, setRetryTrigger] = useState<number>(0);
 
-  // Synchronously reset data on requester change (AC-12 context switching)
-  const prevRequesterIdRef = useRef<string | undefined>(selectedRequester?.id);
-  if (prevRequesterIdRef.current !== selectedRequester?.id) {
-    prevRequesterIdRef.current = selectedRequester?.id;
+  // Synchronously reset data on user change
+  const prevUserIdRef = useRef<string | undefined>(user?.id);
+  if (prevUserIdRef.current !== user?.id) {
+    prevUserIdRef.current = user?.id;
     setTickets([]);
     setHasAnyTicketsOverall(null);
     setSearchInput("");
@@ -92,7 +92,7 @@ export default function MyTickets({
 
   // Main data fetching effect
   useEffect(() => {
-    if (!selectedRequester) {
+    if (!user) {
       setTickets([]);
       setHasAnyTicketsOverall(null);
       setLoading(false);
@@ -118,7 +118,7 @@ export default function MyTickets({
         page,
         pageSize: 10,
       },
-      selectedRequester.id
+      token ?? undefined
     )
       .then((res) => {
         if (!isMounted) return;
@@ -151,7 +151,7 @@ export default function MyTickets({
       isMounted = false;
     };
   }, [
-    selectedRequester?.id,
+    user?.id,
     appliedSearch,
     statusFilter,
     categoryFilter,
@@ -199,10 +199,10 @@ export default function MyTickets({
     }
   }
 
-  if (!selectedRequester) {
+  if (!user) {
     return (
       <div className="alert alert-info mt-4" role="status">
-        Please select a Development Requester to view tickets.
+        Please log in to view tickets.
       </div>
     );
   }

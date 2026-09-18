@@ -16,6 +16,11 @@ import {
 
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3000";
 
+function getAuthHeaders(token?: string): Record<string, string> {
+  if (!token) return {};
+  return { Authorization: token.startsWith("Bearer ") ? token : `Bearer ${token}` };
+}
+
 export async function fetchDevelopmentRequesters(): Promise<DevelopmentRequester[]> {
   const res = await fetch(`${API_URL}/api/v1/development-requesters`);
   if (!res.ok) {
@@ -45,13 +50,13 @@ export async function fetchRelatedSystems(): Promise<RelatedSystem[]> {
 
 export async function createTicket(
   payload: CreateTicketPayload,
-  requesterId: string
+  token?: string
 ): Promise<CreatedTicketDto> {
   const res = await fetch(`${API_URL}/api/v1/tickets`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "X-Dev-Requester-Id": requesterId,
+      ...getAuthHeaders(token),
     },
     body: JSON.stringify({
       categoryId: payload.categoryId,
@@ -83,7 +88,7 @@ export async function createTicket(
 
 export async function fetchMyTickets(
   params: MyTicketsQueryParams = {},
-  requesterId: string
+  token?: string
 ): Promise<MyTicketsResponseDto> {
   const query = new URLSearchParams();
 
@@ -120,7 +125,7 @@ export async function fetchMyTickets(
 
   const res = await fetch(url, {
     headers: {
-      "X-Dev-Requester-Id": requesterId,
+      ...getAuthHeaders(token),
     },
   });
 
@@ -144,11 +149,11 @@ export async function fetchMyTickets(
 
 export async function fetchTicketDetail(
   ticketId: string,
-  requesterId: string
+  token?: string
 ): Promise<TicketDetailDto> {
   const res = await fetch(`${API_URL}/api/v1/tickets/${ticketId}`, {
     headers: {
-      "X-Dev-Requester-Id": requesterId,
+      ...getAuthHeaders(token),
     },
   });
 
@@ -173,7 +178,7 @@ export async function fetchTicketDetail(
 export async function uploadAttachment(
   ticketId: string,
   file: File,
-  requesterId: string
+  token?: string
 ): Promise<AttachmentDto> {
   const formData = new FormData();
   formData.append("file", file);
@@ -181,7 +186,7 @@ export async function uploadAttachment(
   const res = await fetch(`${API_URL}/api/v1/tickets/${ticketId}/attachments`, {
     method: "POST",
     headers: {
-      "X-Dev-Requester-Id": requesterId,
+      ...getAuthHeaders(token),
     },
     body: formData,
   });
@@ -207,13 +212,13 @@ export async function uploadAttachment(
 export async function fetchAttachmentMetadata(
   ticketId: string,
   attachmentId: string,
-  requesterId: string
+  token?: string
 ): Promise<AttachmentDto> {
   const res = await fetch(
     `${API_URL}/api/v1/tickets/${ticketId}/attachments/${attachmentId}`,
     {
       headers: {
-        "X-Dev-Requester-Id": requesterId,
+        ...getAuthHeaders(token),
       },
     }
   );
@@ -239,13 +244,13 @@ export async function fetchAttachmentMetadata(
 export async function downloadAttachment(
   ticketId: string,
   attachmentId: string,
-  requesterId: string
+  token?: string
 ): Promise<void> {
   const res = await fetch(
     `${API_URL}/api/v1/tickets/${ticketId}/attachments/${attachmentId}/download`,
     {
       headers: {
-        "X-Dev-Requester-Id": requesterId,
+        ...getAuthHeaders(token),
       },
     }
   );
@@ -289,7 +294,7 @@ export async function softRemoveAttachment(
   ticketId: string,
   attachmentId: string,
   payload: SoftRemoveAttachmentPayload,
-  requesterId: string
+  token?: string
 ): Promise<SoftRemovedAttachmentDto> {
   const res = await fetch(
     `${API_URL}/api/v1/tickets/${ticketId}/attachments/${attachmentId}`,
@@ -297,7 +302,7 @@ export async function softRemoveAttachment(
       method: "DELETE",
       headers: {
         "Content-Type": "application/json",
-        "X-Dev-Requester-Id": requesterId,
+        ...getAuthHeaders(token),
       },
       body: JSON.stringify({ reason: payload.reason }),
     }

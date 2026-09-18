@@ -1,11 +1,16 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import request from "supertest";
+import jwt from "jsonwebtoken";
 import { app } from "../../src/app.js";
 import { getPrisma } from "../../src/prisma.js";
+
+const JWT_SECRET = process.env.JWT_SECRET || "dev-toktickit-jwt-secret-key";
 
 describe("Ticket Detail Feature (GET /api/v1/tickets/:ticketId)", () => {
   let requesterAId: string;
   let requesterBId: string;
+  let tokenA: string;
+  let tokenB: string;
   let categoryId: number;
   let activeRelatedSystemId: string;
   let ticketAId: string;
@@ -50,6 +55,17 @@ describe("Ticket Detail Feature (GET /api/v1/tickets/:ticketId)", () => {
 
     requesterAId = requesterA.id;
     requesterBId = requesterB.id;
+    tokenA = jwt.sign(
+      { userId: requesterA.id, role: "Requester", tokenVersion: requesterA.tokenVersion },
+      JWT_SECRET,
+      { expiresIn: "8h" }
+    );
+    tokenB = jwt.sign(
+      { userId: requesterB.id, role: "Requester", tokenVersion: requesterB.tokenVersion },
+      JWT_SECRET,
+      { expiresIn: "8h" }
+    );
+
     categoryId = category!.id;
     activeRelatedSystemId = system!.id;
 
@@ -74,7 +90,7 @@ describe("Ticket Detail Feature (GET /api/v1/tickets/:ticketId)", () => {
     it("returns read-only ticket detail with active attachments for owned ticket", async () => {
       const res = await request(app)
         .get(`/api/v1/tickets/${ticketAId}`)
-        .set("X-Dev-Requester-Id", requesterAId);
+        .set("Authorization", `Bearer ${tokenA}`);
 
       expect(res.status).toBe(200);
       expect(res.body).toHaveProperty("id", ticketAId);
@@ -121,7 +137,7 @@ describe("Ticket Detail Feature (GET /api/v1/tickets/:ticketId)", () => {
 
       const res = await request(app)
         .get(`/api/v1/tickets/${ticketAId}`)
-        .set("X-Dev-Requester-Id", requesterAId);
+        .set("Authorization", `Bearer ${tokenA}`);
 
       expect(res.status).toBe(200);
       expect(res.body.attachments.length).toBe(1);
@@ -135,7 +151,7 @@ describe("Ticket Detail Feature (GET /api/v1/tickets/:ticketId)", () => {
     it("returns safe 404 Not Found when attempting to access another requester's ticket", async () => {
       const res = await request(app)
         .get(`/api/v1/tickets/${ticketAId}`)
-        .set("X-Dev-Requester-Id", requesterBId);
+        .set("Authorization", `Bearer ${tokenB}`);
 
       expect(res.status).toBe(404);
       expect(res.body.error).toBeDefined();
@@ -147,25 +163,25 @@ describe("Ticket Detail Feature (GET /api/v1/tickets/:ticketId)", () => {
 
       const resOther = await request(app)
         .get(`/api/v1/tickets/${ticketAId}`)
-        .set("X-Dev-Requester-Id", requesterBId);
+        .set("Authorization", `Bearer ${tokenB}`);
 
       const resNonExistent = await request(app)
         .get(`/api/v1/tickets/${nonExistentUuid}`)
-        .set("X-Dev-Requester-Id", requesterAId);
+        .set("Authorization", `Bearer ${tokenA}`);
 
       expect(resOther.status).toBe(404);
       expect(resNonExistent.status).toBe(404);
       expect(resOther.body).toEqual(resNonExistent.body);
     });
 
-    it("returns safe 400 Bad Request when X-Dev-Requester-Id is missing or invalid", async () => {
+    it("returns 401 Unauthorized when Authorization header is missing or invalid", async () => {
       const resMissing = await request(app).get(`/api/v1/tickets/${ticketAId}`);
-      expect(resMissing.status).toBe(400);
+      expect(resMissing.status).toBe(401);
 
       const resInvalid = await request(app)
         .get(`/api/v1/tickets/${ticketAId}`)
-        .set("X-Dev-Requester-Id", "invalid-uuid");
-      expect(resInvalid.status).toBe(400);
+        .set("Authorization", "Bearer invalid-token");
+      expect(resInvalid.status).toBe(401);
     });
   });
 });
