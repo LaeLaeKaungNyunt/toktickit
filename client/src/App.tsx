@@ -6,6 +6,8 @@ import MyTickets from "./components/MyTickets.js";
 import TicketDetail from "./components/TicketDetail.js";
 import Login from "./components/Login.js";
 import ChangePassword from "./components/ChangePassword.js";
+import { StaffTicketQueue } from "./components/StaffTicketQueue.js";
+import { StaffTicketDetail } from "./components/StaffTicketDetail.js";
 
 type UiState = "idle" | "loading" | "success" | "error";
 type TabState = "create" | "list";
@@ -68,7 +70,7 @@ export function AppContent() {
   }
 
   return (
-    <div className="container py-5" style={{ maxWidth: 840 }}>
+    <div className="container py-5" style={{ maxWidth: 960 }}>
       <div className="d-flex justify-content-between align-items-center mb-4 pb-3 border-bottom">
         <h1 className="h3 mb-0">
           TokTickIT <span style={{ color: "#006B3C" }}>IT Service Desk</span>
@@ -136,6 +138,30 @@ export function AppContent() {
                 onSelectTicket={(ticketId) => setSelectedTicketId(ticketId)}
               />
             )
+          )}
+        </>
+      ) : user.role === "IT Staff" ? (
+        <>
+          <ul className="nav nav-tabs mb-4">
+            <li className="nav-item">
+              <button
+                type="button"
+                className="nav-link active fw-bold"
+                style={{ color: "#006B3C" }}
+                onClick={() => setSelectedTicketId(null)}
+              >
+                IT Staff Queue
+              </button>
+            </li>
+          </ul>
+
+          {selectedTicketId ? (
+            <StaffTicketDetail
+              ticketId={selectedTicketId}
+              onBack={() => setSelectedTicketId(null)}
+            />
+          ) : (
+            <StaffTicketQueue onSelectTicket={(ticketId) => setSelectedTicketId(ticketId)} />
           )}
         </>
       ) : (
