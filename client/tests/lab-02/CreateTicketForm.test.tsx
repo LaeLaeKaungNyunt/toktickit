@@ -1,14 +1,16 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { RequesterProvider, useRequester } from "../../src/context/RequesterContext.js";
 import CreateTicketForm from "../../src/components/CreateTicketForm.js";
 import * as lab02Api from "../../src/api/lab02.js";
+import * as authContext from "../../src/context/AuthContext.js";
 
-const mockRequester = {
+const mockUser = {
   id: "req-123",
-  displayName: "Alice Smith",
+  name: "Alice Smith",
   email: "alice.smith@university.edu",
+  role: "Requester" as const,
+  mustChangePassword: false,
 };
 
 const mockCategories = [
@@ -21,47 +23,27 @@ const mockRelatedSystems = [
   { id: "sys-2", name: "Canvas LMS" },
 ];
 
-function TestWrapper() {
-  const { setSelectedRequester } = useRequester();
-
-  return (
-    <div>
-      <button
-        data-testid="set-requester-btn"
-        onClick={() => setSelectedRequester(mockRequester)}
-      >
-        Set Requester
-      </button>
-      <button
-        data-testid="clear-requester-btn"
-        onClick={() => setSelectedRequester(null)}
-      >
-        Clear Requester
-      </button>
-      <CreateTicketForm />
-    </div>
-  );
-}
-
 describe("CreateTicketForm Component (Issue #13)", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
+    vi.spyOn(authContext, "useAuth").mockReturnValue({
+      user: mockUser,
+      token: "mock-jwt-token",
+      loading: false,
+      error: null,
+      login: vi.fn(),
+      logout: vi.fn(),
+      changePassword: vi.fn(),
+      clearError: vi.fn(),
+    });
   });
 
   it("AC-06: shows loading state while fetching reference data", async () => {
     vi.spyOn(lab02Api, "fetchCategoriesV1").mockReturnValue(new Promise(() => {}) as any);
     vi.spyOn(lab02Api, "fetchRelatedSystems").mockReturnValue(new Promise(() => {}) as any);
 
-    render(
-      <RequesterProvider>
-        <TestWrapper />
-      </RequesterProvider>
-    );
+    render(<CreateTicketForm />);
 
-    // Set requester context
-    await userEvent.click(screen.getByTestId("set-requester-btn"));
-
-    // Expect loading state
     expect(screen.getByText(/loading form reference data/i)).toBeInTheDocument();
   });
 
@@ -69,15 +51,8 @@ describe("CreateTicketForm Component (Issue #13)", () => {
     vi.spyOn(lab02Api, "fetchCategoriesV1").mockResolvedValue(mockCategories);
     vi.spyOn(lab02Api, "fetchRelatedSystems").mockResolvedValue(mockRelatedSystems);
 
-    render(
-      <RequesterProvider>
-        <TestWrapper />
-      </RequesterProvider>
-    );
+    render(<CreateTicketForm />);
 
-    await userEvent.click(screen.getByTestId("set-requester-btn"));
-
-    // Expect populated options
     expect(await screen.findByRole("option", { name: "Account and Access" })).toBeInTheDocument();
     expect(screen.getByRole("option", { name: "Hardware" })).toBeInTheDocument();
     expect(screen.getByRole("option", { name: "Student Portal" })).toBeInTheDocument();
@@ -88,13 +63,7 @@ describe("CreateTicketForm Component (Issue #13)", () => {
     vi.spyOn(lab02Api, "fetchCategoriesV1").mockRejectedValue(new Error("Failed to load"));
     vi.spyOn(lab02Api, "fetchRelatedSystems").mockResolvedValue(mockRelatedSystems);
 
-    render(
-      <RequesterProvider>
-        <TestWrapper />
-      </RequesterProvider>
-    );
-
-    await userEvent.click(screen.getByTestId("set-requester-btn"));
+    render(<CreateTicketForm />);
 
     expect(await screen.findByText(/unable to load reference data/i)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /retry/i })).toBeInTheDocument();
@@ -105,13 +74,8 @@ describe("CreateTicketForm Component (Issue #13)", () => {
     vi.spyOn(lab02Api, "fetchRelatedSystems").mockResolvedValue(mockRelatedSystems);
     const createTicketSpy = vi.spyOn(lab02Api, "createTicket");
 
-    render(
-      <RequesterProvider>
-        <TestWrapper />
-      </RequesterProvider>
-    );
+    render(<CreateTicketForm />);
 
-    await userEvent.click(screen.getByTestId("set-requester-btn"));
     await screen.findByRole("option", { name: "Account and Access" });
 
     // Submit empty form
@@ -145,13 +109,8 @@ describe("CreateTicketForm Component (Issue #13)", () => {
     });
     vi.spyOn(lab02Api, "createTicket").mockReturnValue(createPromise as any);
 
-    render(
-      <RequesterProvider>
-        <TestWrapper />
-      </RequesterProvider>
-    );
+    render(<CreateTicketForm />);
 
-    await userEvent.click(screen.getByTestId("set-requester-btn"));
     await screen.findByRole("option", { name: "Account and Access" });
 
     // Fill valid form values
@@ -200,13 +159,8 @@ describe("CreateTicketForm Component (Issue #13)", () => {
     (apiErr as any).fields = { summary: "Summary violates policy." };
     vi.spyOn(lab02Api, "createTicket").mockRejectedValue(apiErr);
 
-    render(
-      <RequesterProvider>
-        <TestWrapper />
-      </RequesterProvider>
-    );
+    render(<CreateTicketForm />);
 
-    await userEvent.click(screen.getByTestId("set-requester-btn"));
     await screen.findByRole("option", { name: "Account and Access" });
 
     await userEvent.selectOptions(screen.getByLabelText(/category/i), "1");
@@ -248,13 +202,8 @@ describe("CreateTicketForm Component (Issue #13)", () => {
       updatedAt: "2026-09-04T21:00:00.000Z",
     });
 
-    render(
-      <RequesterProvider>
-        <TestWrapper />
-      </RequesterProvider>
-    );
+    render(<CreateTicketForm />);
 
-    await userEvent.click(screen.getByTestId("set-requester-btn"));
     await screen.findByRole("option", { name: "Account and Access" });
 
     await userEvent.selectOptions(screen.getByLabelText(/category/i), "1");
@@ -283,30 +232,5 @@ describe("CreateTicketForm Component (Issue #13)", () => {
     // Check "Create Another Ticket" action resets form
     await userEvent.click(screen.getByRole("button", { name: /create another ticket/i }));
     expect(screen.getByRole("button", { name: /create ticket/i })).toBeInTheDocument();
-  });
-
-  it("resets Create Ticket state when requester selection changes", async () => {
-    vi.spyOn(lab02Api, "fetchCategoriesV1").mockResolvedValue(mockCategories);
-    vi.spyOn(lab02Api, "fetchRelatedSystems").mockResolvedValue(mockRelatedSystems);
-
-    render(
-      <RequesterProvider>
-        <TestWrapper />
-      </RequesterProvider>
-    );
-
-    await userEvent.click(screen.getByTestId("set-requester-btn"));
-    await screen.findByRole("option", { name: "Account and Access" });
-
-    await userEvent.type(screen.getByLabelText(/ticket summary/i), "Draft Summary Text");
-
-    // Clear / Switch requester
-    await userEvent.click(screen.getByTestId("clear-requester-btn"));
-
-    expect(screen.queryByLabelText(/ticket summary/i)).not.toBeInTheDocument();
-
-    // Set requester again -> clean fresh form
-    await userEvent.click(screen.getByTestId("set-requester-btn"));
-    expect(await screen.findByLabelText(/ticket summary/i)).toHaveValue("");
   });
 });

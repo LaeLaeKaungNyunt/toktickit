@@ -3,9 +3,15 @@ import request from "supertest";
 import { app } from "../../src/app.js";
 import { getPrisma } from "../../src/prisma.js";
 
+import jwt from "jsonwebtoken";
+
+const JWT_SECRET = process.env.JWT_SECRET || "dev-toktickit-jwt-secret-key";
+
 describe("My Tickets API (GET /api/v1/tickets)", () => {
   let requesterAId: string;
   let requesterBId: string;
+  let tokenA: string;
+  let tokenB: string;
   let categoryId: number;
   let relatedSystemId: string;
 
@@ -39,6 +45,17 @@ describe("My Tickets API (GET /api/v1/tickets)", () => {
 
     requesterAId = reqA.id;
     requesterBId = reqB.id;
+
+    tokenA = jwt.sign(
+      { userId: reqA.id, role: "Requester", tokenVersion: reqA.tokenVersion },
+      JWT_SECRET,
+      { expiresIn: "8h" }
+    );
+    tokenB = jwt.sign(
+      { userId: reqB.id, role: "Requester", tokenVersion: reqB.tokenVersion },
+      JWT_SECRET,
+      { expiresIn: "8h" }
+    );
 
     const category = await prisma.category.findFirst();
     const system = await prisma.relatedSystem.findFirst({ where: { isActive: true } });
@@ -91,7 +108,7 @@ describe("My Tickets API (GET /api/v1/tickets)", () => {
       // Requester A lists tickets
       const resA = await request(app)
         .get("/api/v1/tickets")
-        .set("X-Dev-Requester-Id", requesterAId);
+        .set("Authorization", `Bearer ${tokenA}`);
 
       expect(resA.status).toBe(200);
       expect(resA.body.items.length).toBe(1);
@@ -103,7 +120,7 @@ describe("My Tickets API (GET /api/v1/tickets)", () => {
       // Requester B lists tickets
       const resB = await request(app)
         .get("/api/v1/tickets")
-        .set("X-Dev-Requester-Id", requesterBId);
+        .set("Authorization", `Bearer ${tokenB}`);
 
       expect(resB.status).toBe(200);
       expect(resB.body.items.length).toBe(1);
@@ -132,7 +149,7 @@ describe("My Tickets API (GET /api/v1/tickets)", () => {
       // Requester A attempts to pass requesterId=requesterBId in query string
       const res = await request(app)
         .get(`/api/v1/tickets?requesterId=${requesterBId}`)
-        .set("X-Dev-Requester-Id", requesterAId);
+        .set("Authorization", `Bearer ${tokenA}`);
 
       expect(res.status).toBe(200);
       expect(res.body.items.length).toBe(0);
@@ -182,7 +199,7 @@ describe("My Tickets API (GET /api/v1/tickets)", () => {
       // Search by partial summary ("pOrTaL")
       const resSummary = await request(app)
         .get("/api/v1/tickets?search=pOrTaL")
-        .set("X-Dev-Requester-Id", requesterAId);
+        .set("Authorization", `Bearer ${tokenA}`);
       expect(resSummary.status).toBe(200);
       expect(resSummary.body.items.length).toBe(1);
       expect(resSummary.body.items[0].ticketNumber).toBe("TKT-2026-90101");
@@ -190,7 +207,7 @@ describe("My Tickets API (GET /api/v1/tickets)", () => {
       // Search by partial description ("eRrOr")
       const resDesc = await request(app)
         .get("/api/v1/tickets?search=eRrOr")
-        .set("X-Dev-Requester-Id", requesterAId);
+        .set("Authorization", `Bearer ${tokenA}`);
       expect(resDesc.status).toBe(200);
       expect(resDesc.body.items.length).toBe(1);
       expect(resDesc.body.items[0].ticketNumber).toBe("TKT-2026-90102");
@@ -198,7 +215,7 @@ describe("My Tickets API (GET /api/v1/tickets)", () => {
       // Search by ticketNumber ("90103")
       const resNumber = await request(app)
         .get("/api/v1/tickets?search=90103")
-        .set("X-Dev-Requester-Id", requesterAId);
+        .set("Authorization", `Bearer ${tokenA}`);
       expect(resNumber.status).toBe(200);
       expect(resNumber.body.items.length).toBe(1);
       expect(resNumber.body.items[0].ticketNumber).toBe("TKT-2026-90103");
@@ -236,7 +253,7 @@ describe("My Tickets API (GET /api/v1/tickets)", () => {
       // Filter by requestedPriority=High
       const resHigh = await request(app)
         .get("/api/v1/tickets?requestedPriority=High")
-        .set("X-Dev-Requester-Id", requesterAId);
+        .set("Authorization", `Bearer ${tokenA}`);
       expect(resHigh.status).toBe(200);
       expect(resHigh.body.items.length).toBe(1);
       expect(resHigh.body.items[0].requestedPriority).toBe("High");
@@ -244,7 +261,7 @@ describe("My Tickets API (GET /api/v1/tickets)", () => {
       // Filter by status=New & categoryId & requestedPriority=Low
       const resCombined = await request(app)
         .get(`/api/v1/tickets?status=New&categoryId=${categoryId}&requestedPriority=Low`)
-        .set("X-Dev-Requester-Id", requesterAId);
+        .set("Authorization", `Bearer ${tokenA}`);
       expect(resCombined.status).toBe(200);
       expect(resCombined.body.items.length).toBe(1);
       expect(resCombined.body.items[0].requestedPriority).toBe("Low");
@@ -302,7 +319,7 @@ describe("My Tickets API (GET /api/v1/tickets)", () => {
       // Sort by requestedPriority asc -> Low, Medium, High, Urgent
       const resAsc = await request(app)
         .get("/api/v1/tickets?sortBy=requestedPriority&sortOrder=asc")
-        .set("X-Dev-Requester-Id", requesterAId);
+        .set("Authorization", `Bearer ${tokenA}`);
       expect(resAsc.status).toBe(200);
       const prioritiesAsc = resAsc.body.items.map((i: { requestedPriority: string }) => i.requestedPriority);
       expect(prioritiesAsc).toEqual(["Low", "Medium", "High", "Urgent"]);
@@ -310,7 +327,7 @@ describe("My Tickets API (GET /api/v1/tickets)", () => {
       // Sort by requestedPriority desc -> Urgent, High, Medium, Low
       const resDesc = await request(app)
         .get("/api/v1/tickets?sortBy=requestedPriority&sortOrder=desc")
-        .set("X-Dev-Requester-Id", requesterAId);
+        .set("Authorization", `Bearer ${tokenA}`);
       expect(resDesc.status).toBe(200);
       const prioritiesDesc = resDesc.body.items.map((i: { requestedPriority: string }) => i.requestedPriority);
       expect(prioritiesDesc).toEqual(["Urgent", "High", "Medium", "Low"]);
@@ -335,7 +352,7 @@ describe("My Tickets API (GET /api/v1/tickets)", () => {
       // Page 1 (items 1..3): Urgent, Urgent, High
       const resPage1 = await request(app)
         .get("/api/v1/tickets?sortBy=requestedPriority&sortOrder=desc&page=1&pageSize=3")
-        .set("X-Dev-Requester-Id", requesterAId);
+        .set("Authorization", `Bearer ${tokenA}`);
 
       expect(resPage1.status).toBe(200);
       expect(resPage1.body.pagination.totalItems).toBe(6);
@@ -346,7 +363,7 @@ describe("My Tickets API (GET /api/v1/tickets)", () => {
       // Page 2 (items 4..6): Medium, Low, Low
       const resPage2 = await request(app)
         .get("/api/v1/tickets?sortBy=requestedPriority&sortOrder=desc&page=2&pageSize=3")
-        .set("X-Dev-Requester-Id", requesterAId);
+        .set("Authorization", `Bearer ${tokenA}`);
 
       expect(resPage2.status).toBe(200);
       expect(resPage2.body.pagination.totalItems).toBe(6);
@@ -384,7 +401,7 @@ describe("My Tickets API (GET /api/v1/tickets)", () => {
 
       const res = await request(app)
         .get("/api/v1/tickets?sortBy=ticketNumber&sortOrder=asc")
-        .set("X-Dev-Requester-Id", requesterAId);
+        .set("Authorization", `Bearer ${tokenA}`);
       expect(res.status).toBe(200);
       expect(res.body.items[0].ticketNumber).toBe("TKT-2026-90001");
       expect(res.body.items[1].ticketNumber).toBe("TKT-2026-90003");
@@ -410,7 +427,7 @@ describe("My Tickets API (GET /api/v1/tickets)", () => {
       // Default page 1, pageSize 10
       const resPage1 = await request(app)
         .get("/api/v1/tickets")
-        .set("X-Dev-Requester-Id", requesterAId);
+        .set("Authorization", `Bearer ${tokenA}`);
 
       expect(resPage1.status).toBe(200);
       expect(resPage1.body.items.length).toBe(10);
@@ -424,7 +441,7 @@ describe("My Tickets API (GET /api/v1/tickets)", () => {
       // Page 2, pageSize 10
       const resPage2 = await request(app)
         .get("/api/v1/tickets?page=2&pageSize=10")
-        .set("X-Dev-Requester-Id", requesterAId);
+        .set("Authorization", `Bearer ${tokenA}`);
 
       expect(resPage2.status).toBe(200);
       expect(resPage2.body.items.length).toBe(5);
@@ -439,7 +456,7 @@ describe("My Tickets API (GET /api/v1/tickets)", () => {
     it("returns totalPages = 0 when totalItems = 0", async () => {
       const res = await request(app)
         .get("/api/v1/tickets?search=nonexistentsearchterm123")
-        .set("X-Dev-Requester-Id", requesterAId);
+        .set("Authorization", `Bearer ${tokenA}`);
 
       expect(res.status).toBe(200);
       expect(res.body.items).toEqual([]);
@@ -468,7 +485,7 @@ describe("My Tickets API (GET /api/v1/tickets)", () => {
 
       const res = await request(app)
         .get("/api/v1/tickets?page=999")
-        .set("X-Dev-Requester-Id", requesterAId);
+        .set("Authorization", `Bearer ${tokenA}`);
 
       expect(res.status).toBe(200);
       expect(res.body.items).toEqual([]);
@@ -482,42 +499,42 @@ describe("My Tickets API (GET /api/v1/tickets)", () => {
   });
 
   describe("AC-19: Invalid Query Parameter Validation", () => {
-    it("returns 400 Bad Request for missing or invalid X-Dev-Requester-Id", async () => {
+    it("returns 401 Unauthorized for missing or invalid Authorization header", async () => {
       const resMissing = await request(app).get("/api/v1/tickets");
-      expect(resMissing.status).toBe(400);
+      expect(resMissing.status).toBe(401);
 
       const resInvalid = await request(app)
         .get("/api/v1/tickets")
-        .set("X-Dev-Requester-Id", "not-a-valid-uuid");
-      expect(resInvalid.status).toBe(400);
+        .set("Authorization", "Bearer invalid-jwt-token");
+      expect(resInvalid.status).toBe(401);
     });
 
     it("returns 400 Bad Request for invalid page or pageSize values", async () => {
       const resPage = await request(app)
         .get("/api/v1/tickets?page=0")
-        .set("X-Dev-Requester-Id", requesterAId);
+        .set("Authorization", `Bearer ${tokenA}`);
       expect(resPage.status).toBe(400);
 
       const resPageSize = await request(app)
         .get("/api/v1/tickets?pageSize=100")
-        .set("X-Dev-Requester-Id", requesterAId);
+        .set("Authorization", `Bearer ${tokenA}`);
       expect(resPageSize.status).toBe(400);
     });
 
     it("returns 400 Bad Request for invalid requestedPriority, sortBy, or status", async () => {
       const resPriority = await request(app)
         .get("/api/v1/tickets?requestedPriority=InvalidPriority")
-        .set("X-Dev-Requester-Id", requesterAId);
+        .set("Authorization", `Bearer ${tokenA}`);
       expect(resPriority.status).toBe(400);
 
       const resSortBy = await request(app)
         .get("/api/v1/tickets?sortBy=unknownField")
-        .set("X-Dev-Requester-Id", requesterAId);
+        .set("Authorization", `Bearer ${tokenA}`);
       expect(resSortBy.status).toBe(400);
 
       const resStatus = await request(app)
         .get("/api/v1/tickets?status=Resolved")
-        .set("X-Dev-Requester-Id", requesterAId);
+        .set("Authorization", `Bearer ${tokenA}`);
       expect(resStatus.status).toBe(400);
     });
 
@@ -526,21 +543,21 @@ describe("My Tickets API (GET /api/v1/tickets)", () => {
       for (const val of invalidValues) {
         const res = await request(app)
           .get(`/api/v1/tickets?categoryId=${encodeURIComponent(val)}`)
-          .set("X-Dev-Requester-Id", requesterAId);
+          .set("Authorization", `Bearer ${tokenA}`);
         expect(res.status).toBe(400);
       }
 
       // Valid positive integer categoryId (e.g. 1)
       const resValid = await request(app)
         .get(`/api/v1/tickets?categoryId=${categoryId}`)
-        .set("X-Dev-Requester-Id", requesterAId);
+        .set("Authorization", `Bearer ${tokenA}`);
       expect(resValid.status).toBe(200);
     });
 
     it("returns 400 Bad Request for malformed relatedSystemId", async () => {
       const resSys = await request(app)
         .get("/api/v1/tickets?relatedSystemId=not-a-uuid")
-        .set("X-Dev-Requester-Id", requesterAId);
+        .set("Authorization", `Bearer ${tokenA}`);
       expect(resSys.status).toBe(400);
     });
   });

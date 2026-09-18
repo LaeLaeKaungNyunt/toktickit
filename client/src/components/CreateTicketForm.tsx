@@ -1,12 +1,12 @@
 import { useEffect, useState, FormEvent } from "react";
-import { useRequester } from "../context/RequesterContext.js";
+import { useAuth } from "../context/AuthContext.js";
 import { fetchCategoriesV1, fetchRelatedSystems, createTicket } from "../api/lab02.js";
 import { CategoryV1, RelatedSystem, CreatedTicketDto, RequestedPriority } from "../types/lab02.js";
 
 const PRIORITIES: RequestedPriority[] = ["Low", "Medium", "High", "Urgent"];
 
 export default function CreateTicketForm() {
-  const { selectedRequester } = useRequester();
+  const { user, token } = useAuth();
 
   // Reference data state
   const [categories, setCategories] = useState<CategoryV1[]>([]);
@@ -47,7 +47,6 @@ export default function CreateTicketForm() {
     }
   }
 
-  // Reset form whenever selected requester changes
   useEffect(() => {
     setCategoryId("");
     setRelatedSystemId("");
@@ -58,12 +57,12 @@ export default function CreateTicketForm() {
     setApiError(null);
     setCreatedTicket(null);
 
-    if (selectedRequester) {
+    if (user) {
       loadReferenceData();
     }
-  }, [selectedRequester]);
+  }, [user?.id]);
 
-  if (!selectedRequester) {
+  if (!user) {
     return null;
   }
 
@@ -224,7 +223,7 @@ export default function CreateTicketForm() {
           requestedPriority: requestedPriority as RequestedPriority,
           description: trimmedDescription,
         },
-        selectedRequester!.id
+        token ?? undefined
       );
 
       setCreatedTicket(dto);
@@ -294,7 +293,7 @@ export default function CreateTicketForm() {
                 id="ticket-requester"
                 type="text"
                 className="form-control bg-light"
-                value={`${selectedRequester.displayName} (${selectedRequester.email})`}
+                value={`${user.name} (${user.email})`}
                 disabled
                 readOnly
               />

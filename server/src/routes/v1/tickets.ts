@@ -4,9 +4,10 @@ import { randomUUID } from "crypto";
 import multer from "multer";
 import { getPrisma } from "../../prisma.js";
 import {
-  requesterContextMiddleware,
-  AuthenticatedRequesterRequest,
-} from "../../middleware/requesterContext.js";
+  authenticateToken,
+  requireRole,
+  AuthenticatedRequest,
+} from "../../middleware/auth.js";
 import { allocateTicketNumber } from "../../utils/ticketNumber.js";
 import { getStorageService } from "../../services/storage.js";
 
@@ -32,11 +33,12 @@ const MAX_FILE_SIZE = 5242880; // 5 MB in bytes
 // GET /api/v1/tickets (AC-11, AC-12, AC-13, AC-14, AC-15, AC-16, AC-19, BR-06, BR-09, BR-16, BR-17)
 router.get(
   "/tickets",
-  requesterContextMiddleware,
-  async (req: AuthenticatedRequesterRequest, res: Response) => {
+  authenticateToken,
+  requireRole("Requester"),
+  async (req: AuthenticatedRequest, res: Response) => {
     try {
       const prisma = getPrisma();
-      const requesterId = req.devRequester!.id;
+      const requesterId = req.user!.id;
 
       const {
         search,
@@ -348,11 +350,12 @@ router.get(
 // POST /api/v1/tickets (AC-05, AC-07, BR-01, BR-02, BR-07, BR-08, BR-11, BR-12, BR-13, BR-33, BR-36)
 router.post(
   "/tickets",
-  requesterContextMiddleware,
-  async (req: AuthenticatedRequesterRequest, res: Response) => {
+  authenticateToken,
+  requireRole("Requester"),
+  async (req: AuthenticatedRequest, res: Response) => {
     try {
       const prisma = getPrisma();
-      const requester = req.devRequester!;
+      const requesterId = req.user!.id;
 
       const { categoryId, relatedSystemId, summary, requestedPriority, description } = req.body ?? {};
 
@@ -426,7 +429,7 @@ router.post(
         const ticket = await tx.ticket.create({
           data: {
             ticketNumber,
-            requesterId: requester.id,
+            requesterId,
             categoryId: parsedCategoryId!,
             relatedSystemId,
             summary: trimmedSummary,
@@ -444,7 +447,7 @@ router.post(
         await tx.ticketEvent.create({
           data: {
             ticketId: ticket.id,
-            actorId: requester.id,
+            actorId: requesterId,
             eventType: "TICKET_CREATED",
             payloadJson: {
               ticketNumber: ticket.ticketNumber,
@@ -496,11 +499,12 @@ router.post(
 // GET /api/v1/tickets/:ticketId (AC-20, AC-21, BR-07, BR-09, BR-10)
 router.get(
   "/tickets/:ticketId",
-  requesterContextMiddleware,
-  async (req: AuthenticatedRequesterRequest, res: Response) => {
+  authenticateToken,
+  requireRole("Requester"),
+  async (req: AuthenticatedRequest, res: Response) => {
     try {
       const prisma = getPrisma();
-      const requesterId = req.devRequester!.id;
+      const requesterId = req.user!.id;
       const { ticketId } = req.params;
 
       if (!UUID_REGEX.test(ticketId)) {
@@ -586,8 +590,9 @@ router.get(
 // POST /api/v1/tickets/:ticketId/attachments (AC-22, AC-23, AC-24, BR-20, BR-21, BR-22, BR-23, BR-24, BR-29, BR-33)
 router.post(
   "/tickets/:ticketId/attachments",
-  requesterContextMiddleware,
-  (req: AuthenticatedRequesterRequest, res: Response) => {
+  authenticateToken,
+  requireRole("Requester"),
+  (req: AuthenticatedRequest, res: Response) => {
     upload.single("file")(req, res, async (err: any) => {
       if (err) {
         if (err.code === "LIMIT_FILE_SIZE") {
@@ -610,7 +615,7 @@ router.post(
 
       try {
         const prisma = getPrisma();
-        const requesterId = req.devRequester!.id;
+        const requesterId = req.user!.id;
         const { ticketId } = req.params;
 
         if (!UUID_REGEX.test(ticketId)) {
@@ -764,11 +769,12 @@ router.post(
 // GET /api/v1/tickets/:ticketId/attachments/:attachmentId (AC-24, AC-26, AC-27, BR-25)
 router.get(
   "/tickets/:ticketId/attachments/:attachmentId",
-  requesterContextMiddleware,
-  async (req: AuthenticatedRequesterRequest, res: Response) => {
+  authenticateToken,
+  requireRole("Requester"),
+  async (req: AuthenticatedRequest, res: Response) => {
     try {
       const prisma = getPrisma();
-      const requesterId = req.devRequester!.id;
+      const requesterId = req.user!.id;
       const { ticketId, attachmentId } = req.params;
 
       if (!UUID_REGEX.test(ticketId) || !UUID_REGEX.test(attachmentId)) {
@@ -823,11 +829,12 @@ router.get(
 // GET /api/v1/tickets/:ticketId/attachments/:attachmentId/download (AC-24, AC-26, AC-27, BR-25)
 router.get(
   "/tickets/:ticketId/attachments/:attachmentId/download",
-  requesterContextMiddleware,
-  async (req: AuthenticatedRequesterRequest, res: Response) => {
+  authenticateToken,
+  requireRole("Requester"),
+  async (req: AuthenticatedRequest, res: Response) => {
     try {
       const prisma = getPrisma();
-      const requesterId = req.devRequester!.id;
+      const requesterId = req.user!.id;
       const { ticketId, attachmentId } = req.params;
 
       if (!UUID_REGEX.test(ticketId) || !UUID_REGEX.test(attachmentId)) {
@@ -898,11 +905,12 @@ router.get(
 // DELETE /api/v1/tickets/:ticketId/attachments/:attachmentId (AC-25, AC-26, AC-27, BR-26, BR-27, BR-28, BR-29, BR-32, BR-33, BR-35)
 router.delete(
   "/tickets/:ticketId/attachments/:attachmentId",
-  requesterContextMiddleware,
-  async (req: AuthenticatedRequesterRequest, res: Response) => {
+  authenticateToken,
+  requireRole("Requester"),
+  async (req: AuthenticatedRequest, res: Response) => {
     try {
       const prisma = getPrisma();
-      const requesterId = req.devRequester!.id;
+      const requesterId = req.user!.id;
       const { ticketId, attachmentId } = req.params;
 
       if (!UUID_REGEX.test(ticketId) || !UUID_REGEX.test(attachmentId)) {

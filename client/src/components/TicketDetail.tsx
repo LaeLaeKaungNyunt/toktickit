@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from "react";
-import { useRequester } from "../context/RequesterContext.js";
+import { useAuth } from "../context/AuthContext.js";
 import {
   fetchTicketDetail,
   uploadAttachment,
@@ -18,16 +18,16 @@ const ALLOWED_EXTENSIONS = [".jpg", ".jpeg", ".png", ".webp", ".pdf"];
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB
 
 export default function TicketDetail({ ticketId, onBack }: TicketDetailProps) {
-  const { selectedRequester } = useRequester();
+  const { user, token } = useAuth();
 
   const [ticket, setTicket] = useState<TicketDetailDto | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Synchronously clear stale ticket data on requester change (AC-03, BR-06)
-  const prevRequesterIdRef = useRef<string | undefined>(selectedRequester?.id);
-  if (prevRequesterIdRef.current !== selectedRequester?.id) {
-    prevRequesterIdRef.current = selectedRequester?.id;
+  // Synchronously clear stale ticket data on user change
+  const prevUserIdRef = useRef<string | undefined>(user?.id);
+  if (prevUserIdRef.current !== user?.id) {
+    prevUserIdRef.current = user?.id;
     setTicket(null);
     setError(null);
     setIsLoading(true);
@@ -47,7 +47,7 @@ export default function TicketDetail({ ticketId, onBack }: TicketDetailProps) {
   const [removalSuccess, setRemovalSuccess] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!selectedRequester || !ticketId) {
+    if (!user || !ticketId) {
       setTicket(null);
       setIsLoading(false);
       return;
@@ -63,7 +63,7 @@ export default function TicketDetail({ ticketId, onBack }: TicketDetailProps) {
     setSelectedFile(null);
     setRemovingAttachment(null);
 
-    fetchTicketDetail(ticketId, selectedRequester.id)
+    fetchTicketDetail(ticketId, token ?? undefined)
       .then((data) => {
         if (isMounted) {
           setTicket(data);
@@ -81,18 +81,18 @@ export default function TicketDetail({ ticketId, onBack }: TicketDetailProps) {
     return () => {
       isMounted = false;
     };
-  }, [ticketId, selectedRequester?.id]);
+  }, [ticketId, user?.id]);
 
-  if (!selectedRequester) {
+  if (!user) {
     return (
       <div className="alert alert-warning" role="alert">
-        Please select a Development Requester to view ticket detail.
+        Please log in to view ticket detail.
       </div>
     );
   }
 
-  // Requester ownership check: do not display stale data if ticket owner != selected requester
-  const isOwnedBySelectedRequester = ticket?.requester.id === selectedRequester.id;
+  // Requester ownership check: do not display stale data if ticket owner != logged in user
+  const isOwnedBySelectedRequester = ticket?.requester.id === user.id;
 
   if (isLoading || (ticket && !isOwnedBySelectedRequester)) {
     return (
@@ -168,7 +168,7 @@ export default function TicketDetail({ ticketId, onBack }: TicketDetailProps) {
     setUploadSuccess(null);
 
     try {
-      const newAtt = await uploadAttachment(ticket.id, selectedFile, selectedRequester.id);
+      const newAtt = await uploadAttachment(ticket.id, selectedFile, token ?? undefined);
       setTicket((prev) =>
         prev
           ? {
@@ -190,7 +190,7 @@ export default function TicketDetail({ ticketId, onBack }: TicketDetailProps) {
 
   const handleDownload = async (attachment: AttachmentDto) => {
     try {
-      await downloadAttachment(ticket.id, attachment.id, selectedRequester.id);
+      await downloadAttachment(ticket.id, attachment.id, token ?? undefined);
     } catch (err: any) {
       alert(err.message || "Unable to download attachment.");
     }
@@ -225,7 +225,7 @@ export default function TicketDetail({ ticketId, onBack }: TicketDetailProps) {
         ticket.id,
         removingAttachment.id,
         { reason: trimmedReason },
-        selectedRequester.id
+        token ?? undefined
       );
 
       setTicket((prev) =>
