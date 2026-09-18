@@ -28,7 +28,8 @@ model User {
   tokenVersion       Int           @default(0)
   createdAt          DateTime      @default(now())
   updatedAt          DateTime      @updatedAt
-  tickets            Ticket[]
+  tickets            Ticket[]      @relation("TicketRequester")
+  assignedTickets    Ticket[]      @relation("TicketAssignee")
   ticketEvents       TicketEvent[]
   removedAttachments Attachment[]  @relation("AttachmentRemovedBy")
 
@@ -49,16 +50,19 @@ model Ticket {
   id                String        @id @default(uuid())
   ticketNumber      String        @unique
   requesterId       String
+  assigneeId        String?
   categoryId        Int
   relatedSystemId   String
   summary           String
   description       String
   requestedPriority String        // Low | Medium | High | Urgent
+  itPriority        String?       // Low | Medium | High | Urgent | null
   currentStatus     String        @default("New")
   createdAt         DateTime      @default(now())
   updatedAt         DateTime      @updatedAt
 
-  requester         User          @relation(fields: [requesterId], references: [id])
+  requester         User          @relation("TicketRequester", fields: [requesterId], references: [id])
+  assignee          User?         @relation("TicketAssignee", fields: [assigneeId], references: [id])
   category          Category      @relation(fields: [categoryId], references: [id])
   relatedSystem     RelatedSystem @relation(fields: [relatedSystemId], references: [id])
   ticketEvents      TicketEvent[]
@@ -66,6 +70,8 @@ model Ticket {
 
   @@index([requesterId, createdAt])
   @@index([requesterId, currentStatus])
+  @@index([assigneeId])
+  @@index([itPriority])
   @@index([categoryId])
   @@index([relatedSystemId])
 }
