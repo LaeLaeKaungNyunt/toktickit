@@ -5,6 +5,7 @@ import {
   uploadAttachment,
   downloadAttachment,
   softRemoveAttachment,
+  updateRequesterResolution,
 } from "../api/lab02.js";
 import { TicketDetailDto, AttachmentDto } from "../types/lab02.js";
 
@@ -23,6 +24,24 @@ export default function TicketDetail({ ticketId, onBack }: TicketDetailProps) {
   const [ticket, setTicket] = useState<TicketDetailDto | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [isUpdatingResolution, setIsUpdatingResolution] = useState<boolean>(false);
+  const [resolutionError, setResolutionError] = useState<string | null>(null);
+
+  const handleToggleResolution = async () => {
+    if (!ticket || isUpdatingResolution) return;
+    setIsUpdatingResolution(true);
+    setResolutionError(null);
+
+    try {
+      const nextVal = ticket.requesterResolution === "RESOLVED" ? null : "RESOLVED";
+      const res = await updateRequesterResolution(ticket.id, nextVal, token ?? undefined);
+      setTicket((prev) => (prev ? { ...prev, requesterResolution: res.requesterResolution } : prev));
+    } catch (err: any) {
+      setResolutionError(err.message || "Unable to update resolution indication");
+    } finally {
+      setIsUpdatingResolution(false);
+    }
+  };
 
   // Synchronously clear stale ticket data on user change
   const prevUserIdRef = useRef<string | undefined>(user?.id);
@@ -56,6 +75,7 @@ export default function TicketDetail({ ticketId, onBack }: TicketDetailProps) {
     let isMounted = true;
     setIsLoading(true);
     setError(null);
+    setResolutionError(null);
     setUploadError(null);
     setUploadSuccess(null);
     setRemovalError(null);
@@ -291,6 +311,18 @@ export default function TicketDetail({ ticketId, onBack }: TicketDetailProps) {
         </div>
       )}
 
+      {resolutionError && (
+        <div className="alert alert-danger alert-dismissible fade show" role="alert" data-testid="resolution-error-alert">
+          {resolutionError}
+          <button
+            type="button"
+            className="btn-close"
+            onClick={() => setResolutionError(null)}
+            aria-label="Close resolution error"
+          ></button>
+        </div>
+      )}
+
       {/* Main Ticket Detail Card */}
       <div
         className="card shadow-sm border-0 mb-4"
@@ -306,6 +338,15 @@ export default function TicketDetail({ ticketId, onBack }: TicketDetailProps) {
             <small style={{ opacity: 0.9 }}>Created: {formatDate(ticket.createdAt)}</small>
           </div>
           <div className="d-flex align-items-center gap-2 mt-2 mt-sm-0">
+            <button
+              type="button"
+              className={`btn btn-sm ${ticket.requesterResolution === "RESOLVED" ? "btn-success" : "btn-outline-light"}`}
+              onClick={handleToggleResolution}
+              disabled={isUpdatingResolution}
+              title="Indicate whether you consider this ticket resolved"
+            >
+              {ticket.requesterResolution === "RESOLVED" ? "✓ Resolved by You" : "Mark as Resolved"}
+            </button>
             <span className="badge bg-light text-dark fs-6">{ticket.requestedPriority}</span>
             <span className="badge bg-warning text-dark fs-6">{ticket.currentStatus}</span>
           </div>

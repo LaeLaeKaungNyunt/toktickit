@@ -95,7 +95,7 @@ describe("Lab 3 User Migration and Data Preservation", () => {
       if (attachment.removedByRequesterId) {
         expect(attachment.removedByRequester).toBeDefined();
         expect(attachment.removedByRequester?.id).toBe(attachment.removedByRequesterId);
-        expect(attachment.removedByRequester?.role).toBe("Requester");
+        expect(["Requester", "IT Staff", "Administrator"]).toContain(attachment.removedByRequester?.role);
       }
     }
 

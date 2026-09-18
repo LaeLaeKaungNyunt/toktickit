@@ -10,6 +10,8 @@ import {
 
 import jwt from "jsonwebtoken";
 
+import { allocateTicketNumber } from "../../src/utils/ticketNumber.js";
+
 const JWT_SECRET = process.env.JWT_SECRET || "dev-toktickit-jwt-secret-key";
 
 describe("Attachment Management API (Issue #15)", () => {
@@ -28,59 +30,35 @@ describe("Attachment Management API (Issue #15)", () => {
     setStorageService(mockStorage);
 
     const prisma = getPrisma();
-
-    const requesterA = await prisma.user.upsert({
-      where: { email: "attachment.test.a@university.edu" },
-      update: { isActive: true },
-      create: {
-        name: "Attachment Test Requester A",
-        email: "attachment.test.a@university.edu",
-        role: "Requester",
-        passwordHash: "hash",
-        isActive: true,
-      },
-    });
-
-    const requesterB = await prisma.user.upsert({
-      where: { email: "attachment.test.b@university.edu" },
-      update: { isActive: true },
-      create: {
-        name: "Attachment Test Requester B",
-        email: "attachment.test.b@university.edu",
-        role: "Requester",
-        passwordHash: "hash",
-        isActive: true,
-      },
-    });
-
-    const category = await prisma.category.findFirst();
-    const system = await prisma.relatedSystem.findFirst({
-      where: { isActive: true },
-    });
+    const requesterA = await prisma.user.findUnique({ where: { email: "alice.smith@university.edu" } });
+    const requesterB = await prisma.user.findUnique({ where: { email: "bob.jones@university.edu" } });
+    const category = await prisma.category.findFirst({ where: { name: "Account and Access" } });
+    const system = await prisma.relatedSystem.findFirst({ where: { name: "Student Portal" } });
 
     expect(requesterA).not.toBeNull();
     expect(requesterB).not.toBeNull();
     expect(category).not.toBeNull();
     expect(system).not.toBeNull();
 
-    requesterAId = requesterA.id;
-    requesterBId = requesterB.id;
+    requesterAId = requesterA!.id;
+    requesterBId = requesterB!.id;
     tokenA = jwt.sign(
-      { userId: requesterA.id, role: "Requester", tokenVersion: requesterA.tokenVersion },
+      { userId: requesterAId, role: requesterA!.role, tokenVersion: requesterA!.tokenVersion },
       JWT_SECRET,
       { expiresIn: "8h" }
     );
     tokenB = jwt.sign(
-      { userId: requesterB.id, role: "Requester", tokenVersion: requesterB.tokenVersion },
+      { userId: requesterBId, role: requesterB!.role, tokenVersion: requesterB!.tokenVersion },
       JWT_SECRET,
       { expiresIn: "8h" }
     );
     categoryId = category!.id;
     activeRelatedSystemId = system!.id;
 
+    const numA = await allocateTicketNumber(prisma);
     const ticketA = await prisma.ticket.create({
       data: {
-        ticketNumber: `TKT-2026-${Math.floor(10000 + Math.random() * 90000)}`,
+        ticketNumber: numA,
         requesterId: requesterAId,
         categoryId,
         relatedSystemId: activeRelatedSystemId,
@@ -91,9 +69,10 @@ describe("Attachment Management API (Issue #15)", () => {
       },
     });
 
+    const numB = await allocateTicketNumber(prisma);
     const ticketB = await prisma.ticket.create({
       data: {
-        ticketNumber: `TKT-2026-${Math.floor(10000 + Math.random() * 90000)}`,
+        ticketNumber: numB,
         requesterId: requesterBId,
         categoryId,
         relatedSystemId: activeRelatedSystemId,

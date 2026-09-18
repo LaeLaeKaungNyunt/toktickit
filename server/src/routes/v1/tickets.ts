@@ -566,6 +566,7 @@ router.get(
         requestedPriority: ticket.requestedPriority,
         description: ticket.description,
         currentStatus: ticket.currentStatus,
+        requesterResolution: ticket.requesterResolution ?? null,
         createdAt: ticket.createdAt.toISOString(),
         updatedAt: ticket.updatedAt.toISOString(),
         attachments: ticket.attachments.map((att) => ({
@@ -587,11 +588,225 @@ router.get(
   }
 );
 
+// PATCH /api/v1/tickets/:ticketId/resolution (Requester Resolution Indication - Requester only)
+router.patch(
+  "/tickets/:ticketId/resolution",
+  authenticateToken,
+  requireRole("Requester"),
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const { ticketId } = req.params;
+      const { requesterResolution } = req.body;
+
+      if (!UUID_REGEX.test(ticketId)) {
+        res.status(404).json({
+          error: {
+            code: "NOT_FOUND",
+            message: "Ticket not found or inaccessible",
+          },
+        });
+        return;
+      }
+
+      let targetResolution: string | null = null;
+      if (requesterResolution !== null && requesterResolution !== undefined && requesterResolution !== "") {
+        if (requesterResolution !== "RESOLVED") {
+          res.status(400).json({
+            error: {
+              code: "INVALID_INPUT",
+              message: "Invalid requesterResolution value. Allowed values are 'RESOLVED' or null.",
+            },
+          });
+          return;
+        }
+        targetResolution = "RESOLVED";
+      }
+
+      const prisma = getPrisma();
+      const user = req.user!;
+      const ticket = await prisma.ticket.findUnique({
+        where: { id: ticketId },
+      });
+
+      if (!ticket) {
+        res.status(404).json({
+          error: {
+            code: "NOT_FOUND",
+            message: "Ticket not found or inaccessible",
+          },
+        });
+        return;
+      }
+
+      if (ticket.requesterId !== user.id) {
+        res.status(403).json({
+          error: {
+            code: "FORBIDDEN",
+            message: "Forbidden: insufficient permissions",
+          },
+        });
+        return;
+      }
+
+      // CRITICAL: Setting or clearing requesterResolution MUST NEVER change currentStatus!
+      const updatedTicket = await prisma.ticket.update({
+        where: { id: ticketId },
+        data: {
+          requesterResolution: targetResolution,
+        },
+      });
+
+      await prisma.ticketEvent.create({
+        data: {
+          ticketId,
+          actorId: user.id,
+          eventType: "REQUESTER_RESOLUTION_CHANGED",
+          payloadJson: {
+            previousResolution: ticket.requesterResolution,
+            newResolution: targetResolution,
+          },
+        },
+      });
+
+      res.status(200).json({
+        ticketId: updatedTicket.id,
+        requesterResolution: updatedTicket.requesterResolution ?? null,
+      });
+    } catch {
+      res.status(500).json({
+        error: {
+          code: "INTERNAL_ERROR",
+          message: "Unable to update requester resolution indication",
+        },
+      });
+    }
+  }
+);
+
+// GET /api/v1/tickets/:ticketId/comments (Requester Public Comments access - Requester only)
+router.get(
+  "/tickets/:ticketId/comments",
+  authenticateToken,
+  requireRole("Requester"),
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const { ticketId } = req.params;
+      const user = req.user!;
+
+      if (!UUID_REGEX.test(ticketId)) {
+        res.status(404).json({ error: "Ticket not found or inaccessible" });
+        return;
+      }
+
+      const prisma = getPrisma();
+      const ticket = await prisma.ticket.findUnique({ where: { id: ticketId } });
+
+      if (!ticket || ticket.requesterId !== user.id) {
+        res.status(403).json({ error: "Forbidden: insufficient permissions" });
+        return;
+      }
+
+      const comments = await prisma.ticketComment.findMany({
+        where: { ticketId },
+        include: {
+          author: { select: { id: true, name: true, role: true } },
+        },
+        orderBy: { createdAt: "asc" },
+      });
+
+      res.status(200).json({
+        comments: comments.map((c) => ({
+          id: c.id,
+          body: c.body,
+          author: {
+            id: c.author.id,
+            name: c.author.name,
+            role: c.author.role,
+          },
+          createdAt: c.createdAt.toISOString(),
+        })),
+      });
+    } catch {
+      res.status(500).json({ error: "Unable to retrieve comments" });
+    }
+  }
+);
+
+// POST /api/v1/tickets/:ticketId/comments (Requester add Public Comment - Requester only)
+router.post(
+  "/tickets/:ticketId/comments",
+  authenticateToken,
+  requireRole("Requester"),
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const { ticketId } = req.params;
+      const { body } = req.body;
+      const user = req.user!;
+
+      if (!UUID_REGEX.test(ticketId)) {
+        res.status(404).json({ error: "Ticket not found or inaccessible" });
+        return;
+      }
+
+      const trimmedBody = typeof body === "string" ? body.trim() : "";
+      if (trimmedBody.length === 0 || trimmedBody.length > 2000) {
+        res.status(400).json({ error: "Comment body must be between 1 and 2,000 characters long" });
+        return;
+      }
+
+      const prisma = getPrisma();
+      const ticket = await prisma.ticket.findUnique({ where: { id: ticketId } });
+
+      if (!ticket || ticket.requesterId !== user.id) {
+        res.status(403).json({ error: "Forbidden: insufficient permissions" });
+        return;
+      }
+
+      const newComment = await prisma.ticketComment.create({
+        data: {
+          ticketId,
+          authorId: user.id,
+          body: trimmedBody,
+        },
+        include: {
+          author: { select: { id: true, name: true, role: true } },
+        },
+      });
+
+      await prisma.ticketEvent.create({
+        data: {
+          ticketId,
+          actorId: user.id,
+          eventType: "PUBLIC_COMMENT_ADDED",
+          payloadJson: {
+            commentId: newComment.id,
+          },
+        },
+      });
+
+      res.status(201).json({
+        comment: {
+          id: newComment.id,
+          body: newComment.body,
+          author: {
+            id: newComment.author.id,
+            name: newComment.author.name,
+            role: newComment.author.role,
+          },
+          createdAt: newComment.createdAt.toISOString(),
+        },
+      });
+    } catch {
+      res.status(500).json({ error: "Unable to post comment" });
+    }
+  }
+);
+
 // POST /api/v1/tickets/:ticketId/attachments (AC-22, AC-23, AC-24, BR-20, BR-21, BR-22, BR-23, BR-24, BR-29, BR-33)
 router.post(
   "/tickets/:ticketId/attachments",
   authenticateToken,
-  requireRole("Requester"),
+  requireRole("Requester", "IT Staff"),
   (req: AuthenticatedRequest, res: Response) => {
     upload.single("file")(req, res, async (err: any) => {
       if (err) {
@@ -615,7 +830,7 @@ router.post(
 
       try {
         const prisma = getPrisma();
-        const requesterId = req.user!.id;
+        const user = req.user!;
         const { ticketId } = req.params;
 
         if (!UUID_REGEX.test(ticketId)) {
@@ -628,12 +843,22 @@ router.post(
           return;
         }
 
-        // Verify ticket ownership
+        // Verify ticket existence and ownership/access
         const ticket = await prisma.ticket.findFirst({
-          where: { id: ticketId, requesterId },
+          where: { id: ticketId },
         });
 
         if (!ticket) {
+          res.status(404).json({
+            error: {
+              code: "NOT_FOUND",
+              message: "Ticket not found or inaccessible",
+            },
+          });
+          return;
+        }
+
+        if (user.role === "Requester" && ticket.requesterId !== user.id) {
           res.status(404).json({
             error: {
               code: "NOT_FOUND",
@@ -718,7 +943,7 @@ router.post(
             await tx.ticketEvent.create({
               data: {
                 ticketId,
-                actorId: requesterId,
+                actorId: user.id,
                 eventType: "ATTACHMENT_ADDED",
                 payloadJson: {
                   attachmentId: att.id,
@@ -770,11 +995,11 @@ router.post(
 router.get(
   "/tickets/:ticketId/attachments/:attachmentId",
   authenticateToken,
-  requireRole("Requester"),
+  requireRole("Requester", "IT Staff"),
   async (req: AuthenticatedRequest, res: Response) => {
     try {
       const prisma = getPrisma();
-      const requesterId = req.user!.id;
+      const user = req.user!;
       const { ticketId, attachmentId } = req.params;
 
       if (!UUID_REGEX.test(ticketId) || !UUID_REGEX.test(attachmentId)) {
@@ -792,13 +1017,23 @@ router.get(
           id: attachmentId,
           ticketId,
           removedAt: null, // Active attachments only
-          ticket: {
-            requesterId, // Hardcoded ticket ownership
-          },
+        },
+        include: {
+          ticket: true,
         },
       });
 
       if (!attachment) {
+        res.status(404).json({
+          error: {
+            code: "NOT_FOUND",
+            message: "Attachment not found or inaccessible",
+          },
+        });
+        return;
+      }
+
+      if (user.role === "Requester" && attachment.ticket.requesterId !== user.id) {
         res.status(404).json({
           error: {
             code: "NOT_FOUND",
@@ -830,11 +1065,11 @@ router.get(
 router.get(
   "/tickets/:ticketId/attachments/:attachmentId/download",
   authenticateToken,
-  requireRole("Requester"),
+  requireRole("Requester", "IT Staff"),
   async (req: AuthenticatedRequest, res: Response) => {
     try {
       const prisma = getPrisma();
-      const requesterId = req.user!.id;
+      const user = req.user!;
       const { ticketId, attachmentId } = req.params;
 
       if (!UUID_REGEX.test(ticketId) || !UUID_REGEX.test(attachmentId)) {
@@ -852,13 +1087,23 @@ router.get(
           id: attachmentId,
           ticketId,
           removedAt: null, // Active attachments only
-          ticket: {
-            requesterId, // Hardcoded ticket ownership
-          },
+        },
+        include: {
+          ticket: true,
         },
       });
 
       if (!attachment) {
+        res.status(404).json({
+          error: {
+            code: "NOT_FOUND",
+            message: "Attachment not found or inaccessible",
+          },
+        });
+        return;
+      }
+
+      if (user.role === "Requester" && attachment.ticket.requesterId !== user.id) {
         res.status(404).json({
           error: {
             code: "NOT_FOUND",
@@ -906,11 +1151,11 @@ router.get(
 router.delete(
   "/tickets/:ticketId/attachments/:attachmentId",
   authenticateToken,
-  requireRole("Requester"),
+  requireRole("Requester", "IT Staff"),
   async (req: AuthenticatedRequest, res: Response) => {
     try {
       const prisma = getPrisma();
-      const requesterId = req.user!.id;
+      const user = req.user!;
       const { ticketId, attachmentId } = req.params;
 
       if (!UUID_REGEX.test(ticketId) || !UUID_REGEX.test(attachmentId)) {
@@ -940,13 +1185,23 @@ router.delete(
           id: attachmentId,
           ticketId,
           removedAt: null, // Active attachments only
-          ticket: {
-            requesterId, // Hardcoded ticket ownership
-          },
+        },
+        include: {
+          ticket: true,
         },
       });
 
       if (!attachment) {
+        res.status(404).json({
+          error: {
+            code: "NOT_FOUND",
+            message: "Attachment not found or inaccessible",
+          },
+        });
+        return;
+      }
+
+      if (user.role === "Requester" && attachment.ticket.requesterId !== user.id) {
         res.status(404).json({
           error: {
             code: "NOT_FOUND",
@@ -979,14 +1234,14 @@ router.delete(
             data: {
               removedAt: new Date(),
               removalReason: trimmedReason,
-              removedByRequesterId: requesterId,
+              removedByRequesterId: user.id,
             },
           });
 
           await tx.ticketEvent.create({
             data: {
               ticketId,
-              actorId: requesterId,
+              actorId: user.id,
               eventType: "ATTACHMENT_REMOVED",
               payloadJson: {
                 attachmentId: attachment.id,

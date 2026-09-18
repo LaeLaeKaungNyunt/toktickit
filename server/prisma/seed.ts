@@ -204,7 +204,7 @@ async function main() {
         description: "Multi-factor authentication SMS codes are delayed by over 30 minutes.",
         requestedPriority: "High",
         itPriority: "High",
-        currentStatus: "On Hold",
+        currentStatus: "Waiting for Requester",
         assigneeId: staff1 ? staff1.id : null,
       },
       {
