@@ -23,22 +23,26 @@ describe("Attachment Management API (Issue #15)", () => {
 
     const prisma = getPrisma();
 
-    const requesterA = await prisma.developmentRequester.upsert({
+    const requesterA = await prisma.user.upsert({
       where: { email: "attachment.test.a@university.edu" },
       update: { isActive: true },
       create: {
-        displayName: "Attachment Test Requester A",
+        name: "Attachment Test Requester A",
         email: "attachment.test.a@university.edu",
+        role: "Requester",
+        passwordHash: "hash",
         isActive: true,
       },
     });
 
-    const requesterB = await prisma.developmentRequester.upsert({
+    const requesterB = await prisma.user.upsert({
       where: { email: "attachment.test.b@university.edu" },
       update: { isActive: true },
       create: {
-        displayName: "Attachment Test Requester B",
+        name: "Attachment Test Requester B",
         email: "attachment.test.b@university.edu",
+        role: "Requester",
+        passwordHash: "hash",
         isActive: true,
       },
     });

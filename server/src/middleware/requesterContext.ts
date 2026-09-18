@@ -18,6 +18,18 @@ export async function requesterContextMiddleware(
   res: Response,
   next: NextFunction
 ): Promise<void> {
+  const authUser = (req as any).user;
+  if (authUser) {
+    (req as AuthenticatedRequesterRequest).devRequester = {
+      id: authUser.id,
+      displayName: authUser.name,
+      email: authUser.email,
+      isActive: true,
+    };
+    next();
+    return;
+  }
+
   const requesterId = req.header("x-dev-requester-id");
 
   if (!requesterId || !UUID_REGEX.test(requesterId)) {
@@ -32,11 +44,11 @@ export async function requesterContextMiddleware(
 
   try {
     const prisma = getPrisma();
-    const requester = await prisma.developmentRequester.findUnique({
+    const user = await prisma.user.findUnique({
       where: { id: requesterId },
     });
 
-    if (!requester || !requester.isActive) {
+    if (!user || !user.isActive) {
       res.status(400).json({
         error: {
           code: "INVALID_REQUESTER_CONTEXT",
@@ -47,10 +59,10 @@ export async function requesterContextMiddleware(
     }
 
     (req as AuthenticatedRequesterRequest).devRequester = {
-      id: requester.id,
-      displayName: requester.displayName,
-      email: requester.email,
-      isActive: requester.isActive,
+      id: user.id,
+      displayName: user.name,
+      email: user.email,
+      isActive: user.isActive,
     };
 
     next();

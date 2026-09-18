@@ -14,22 +14,26 @@ describe("Ticket Detail Feature (GET /api/v1/tickets/:ticketId)", () => {
     const prisma = getPrisma();
 
     // Setup Requester A and Requester B
-    const requesterA = await prisma.developmentRequester.upsert({
+    const requesterA = await prisma.user.upsert({
       where: { email: "detail.test.a@university.edu" },
       update: { isActive: true },
       create: {
-        displayName: "Detail Test Requester A",
+        name: "Detail Test Requester A",
         email: "detail.test.a@university.edu",
+        role: "Requester",
+        passwordHash: "hash",
         isActive: true,
       },
     });
 
-    const requesterB = await prisma.developmentRequester.upsert({
+    const requesterB = await prisma.user.upsert({
       where: { email: "detail.test.b@university.edu" },
       update: { isActive: true },
       create: {
-        displayName: "Detail Test Requester B",
+        name: "Detail Test Requester B",
         email: "detail.test.b@university.edu",
+        role: "Requester",
+        passwordHash: "hash",
         isActive: true,
       },
     });

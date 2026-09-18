@@ -10,12 +10,14 @@ describe("Create Ticket Feature (POST /api/v1/tickets)", () => {
 
   beforeEach(async () => {
     const prisma = getPrisma();
-    const requester = await prisma.developmentRequester.upsert({
+    const requester = await prisma.user.upsert({
       where: { email: "create.ticket.test@university.edu" },
       update: { isActive: true },
       create: {
-        displayName: "Create Ticket Test Requester",
+        name: "Create Ticket Test Requester",
         email: "create.ticket.test@university.edu",
+        role: "Requester",
+        passwordHash: "hash",
         isActive: true,
       },
     });

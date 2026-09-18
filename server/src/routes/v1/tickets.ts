@@ -462,7 +462,7 @@ router.post(
           ticketNumber: ticket.ticketNumber,
           requester: {
             id: ticket.requester.id,
-            displayName: ticket.requester.displayName,
+            displayName: ticket.requester.name,
           },
           category: {
             id: ticket.category.id,
@@ -548,7 +548,7 @@ router.get(
         ticketNumber: ticket.ticketNumber,
         requester: {
           id: ticket.requester.id,
-          displayName: ticket.requester.displayName,
+          displayName: ticket.requester.name,
         },
         category: {
           id: ticket.category.id,

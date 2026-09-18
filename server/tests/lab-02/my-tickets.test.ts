@@ -13,22 +13,26 @@ describe("My Tickets API (GET /api/v1/tickets)", () => {
     const prisma = getPrisma();
 
     // Create isolated test requesters for my-tickets test suite
-    const reqA = await prisma.developmentRequester.upsert({
+    const reqA = await prisma.user.upsert({
       where: { email: "my.tickets.test.a@university.edu" },
       update: { isActive: true },
       create: {
-        displayName: "MyTickets Test Requester A",
+        name: "MyTickets Test Requester A",
         email: "my.tickets.test.a@university.edu",
+        role: "Requester",
+        passwordHash: "hash",
         isActive: true,
       },
     });
 
-    const reqB = await prisma.developmentRequester.upsert({
+    const reqB = await prisma.user.upsert({
       where: { email: "my.tickets.test.b@university.edu" },
       update: { isActive: true },
       create: {
-        displayName: "MyTickets Test Requester B",
+        name: "MyTickets Test Requester B",
         email: "my.tickets.test.b@university.edu",
+        role: "Requester",
+        passwordHash: "hash",
         isActive: true,
       },
     });
