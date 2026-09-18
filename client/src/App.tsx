@@ -1,15 +1,19 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useRef } from "react";
 import { checkSystem, Category } from "./api.js";
+import { AuthProvider, useAuth } from "./context/AuthContext.js";
 import { RequesterProvider, useRequester } from "./context/RequesterContext.js";
 import RequesterSelector from "./components/RequesterSelector.js";
 import CreateTicketForm from "./components/CreateTicketForm.js";
 import MyTickets from "./components/MyTickets.js";
 import TicketDetail from "./components/TicketDetail.js";
+import Login from "./components/Login.js";
+import ChangePassword from "./components/ChangePassword.js";
 
 type UiState = "idle" | "loading" | "success" | "error";
 type TabState = "create" | "list";
 
 export function AppContent() {
+  const { user, loading, logout } = useAuth();
   const { selectedRequester } = useRequester();
   const [activeTab, setActiveTab] = useState<TabState>("create");
   const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
@@ -36,11 +40,56 @@ export function AppContent() {
     }
   }
 
+  if (loading) {
+    return (
+      <div className="container py-5 text-center" style={{ maxWidth: 840 }}>
+        <p className="text-muted">Loading TokTickIT...</p>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="container py-5" style={{ maxWidth: 840 }}>
+        <h1 className="h3 mb-4 text-center">
+          TokTickIT <span style={{ color: "#006B3C" }}>IT Service Desk</span>
+        </h1>
+        <Login />
+      </div>
+    );
+  }
+
+  if (user.mustChangePassword) {
+    return (
+      <div className="container py-5" style={{ maxWidth: 840 }}>
+        <h1 className="h3 mb-4 text-center">
+          TokTickIT <span style={{ color: "#006B3C" }}>IT Service Desk</span>
+        </h1>
+        <ChangePassword />
+      </div>
+    );
+  }
+
   return (
     <div className="container py-5" style={{ maxWidth: 840 }}>
-      <h1 className="h3 mb-4">
-        TokTickIT <span style={{ color: "#006B3C" }}>IT Service Desk</span>
-      </h1>
+      <div className="d-flex justify-content-between align-items-center mb-4 pb-3 border-bottom">
+        <h1 className="h3 mb-0">
+          TokTickIT <span style={{ color: "#006B3C" }}>IT Service Desk</span>
+        </h1>
+        <div className="d-flex align-items-center gap-3">
+          <div className="text-end">
+            <span className="fw-bold d-block">{user.name}</span>
+            <span className="badge bg-secondary">{user.role}</span>
+          </div>
+          <button
+            type="button"
+            className="btn btn-outline-secondary btn-sm"
+            onClick={logout}
+          >
+            Logout
+          </button>
+        </div>
+      </div>
 
       <RequesterSelector />
 
@@ -132,8 +181,10 @@ export function AppContent() {
 
 export default function App() {
   return (
-    <RequesterProvider>
-      <AppContent />
-    </RequesterProvider>
+    <AuthProvider>
+      <RequesterProvider>
+        <AppContent />
+      </RequesterProvider>
+    </AuthProvider>
   );
 }

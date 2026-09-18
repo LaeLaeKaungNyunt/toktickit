@@ -17,16 +17,23 @@ model Category {
   tickets   Ticket[]
 }
 
-model DevelopmentRequester {
+model User {
   id                 String        @id @default(uuid())
-  displayName        String
+  name               String
   email              String        @unique
+  passwordHash       String
+  role               String        // Requester | IT Staff | Administrator
   isActive           Boolean       @default(true)
+  mustChangePassword Boolean       @default(false)
+  tokenVersion       Int           @default(0)
   createdAt          DateTime      @default(now())
   updatedAt          DateTime      @updatedAt
   tickets            Ticket[]
   ticketEvents       TicketEvent[]
   removedAttachments Attachment[]  @relation("AttachmentRemovedBy")
+
+  @@index([role])
+  @@index([email])
 }
 
 model RelatedSystem {
@@ -39,21 +46,21 @@ model RelatedSystem {
 }
 
 model Ticket {
-  id                String               @id @default(uuid())
-  ticketNumber      String               @unique
+  id                String        @id @default(uuid())
+  ticketNumber      String        @unique
   requesterId       String
   categoryId        Int
   relatedSystemId   String
   summary           String
   description       String
-  requestedPriority String               // Low | Medium | High | Urgent
-  currentStatus     String               @default("New")
-  createdAt         DateTime             @default(now())
-  updatedAt         DateTime             @updatedAt
+  requestedPriority String        // Low | Medium | High | Urgent
+  currentStatus     String        @default("New")
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
 
-  requester         DevelopmentRequester @relation(fields: [requesterId], references: [id])
-  category          Category             @relation(fields: [categoryId], references: [id])
-  relatedSystem     RelatedSystem        @relation(fields: [relatedSystemId], references: [id])
+  requester         User          @relation(fields: [requesterId], references: [id])
+  category          Category      @relation(fields: [categoryId], references: [id])
+  relatedSystem     RelatedSystem @relation(fields: [relatedSystemId], references: [id])
   ticketEvents      TicketEvent[]
   attachments       Attachment[]
 
@@ -64,15 +71,15 @@ model Ticket {
 }
 
 model TicketEvent {
-  id          String                @id @default(uuid())
+  id          String   @id @default(uuid())
   ticketId    String
   actorId     String?
-  eventType   String                // e.g. TICKET_CREATED
+  eventType   String   // e.g. TICKET_CREATED
   payloadJson Json?
-  createdAt   DateTime              @default(now())
+  createdAt   DateTime @default(now())
 
-  ticket      Ticket                @relation(fields: [ticketId], references: [id])
-  actor       DevelopmentRequester? @relation(fields: [actorId], references: [id])
+  ticket      Ticket   @relation(fields: [ticketId], references: [id])
+  actor       User?    @relation(fields: [actorId], references: [id])
 
   @@index([ticketId, createdAt])
 }
@@ -84,19 +91,19 @@ model TicketSequence {
 }
 
 model Attachment {
-  id                   String                @id @default(uuid())
+  id                   String    @id @default(uuid())
   ticketId             String
   originalFilename     String
   storedObjectKey      String
   mimeType             String
   sizeBytes            Int
-  uploadedAt           DateTime              @default(now())
+  uploadedAt           DateTime  @default(now())
   removedAt            DateTime?
   removalReason        String?
   removedByRequesterId String?
 
-  ticket               Ticket                @relation(fields: [ticketId], references: [id])
-  removedByRequester   DevelopmentRequester? @relation("AttachmentRemovedBy", fields: [removedByRequesterId], references: [id])
+  ticket               Ticket    @relation(fields: [ticketId], references: [id])
+  removedByRequester   User?     @relation("AttachmentRemovedBy", fields: [removedByRequesterId], references: [id])
 
   @@index([ticketId, removedAt])
 }

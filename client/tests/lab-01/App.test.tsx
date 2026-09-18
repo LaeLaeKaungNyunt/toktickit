@@ -5,9 +5,20 @@ import App from "../../src/App.js";
 import * as api from "../../src/api.js";
 
 describe("App", () => {
-  it("renders the TokTickIT heading", () => {
+  beforeEach(() => {
+    sessionStorage.setItem("toktickit_auth_token", "test-token");
+    vi.spyOn(api, "getMeApi").mockResolvedValue({
+      id: "test-user-id",
+      name: "Test User",
+      email: "test@university.edu",
+      role: "Requester",
+      mustChangePassword: false,
+    });
+  });
+
+  it("renders the TokTickIT heading", async () => {
     render(<App />);
-    expect(screen.getByText(/TokTickIT/i)).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: /TokTickIT/i })).toBeInTheDocument();
   });
 
   it("shows Online and the seeded categories on success", async () => {
@@ -23,7 +34,8 @@ describe("App", () => {
 
     render(<App />);
 
-    await userEvent.click(screen.getByRole("button", { name: /check system/i }));
+    const checkBtn = await screen.findByRole("button", { name: /check system/i });
+    await userEvent.click(checkBtn);
 
     expect(await screen.findByText(/System Status: Online/i)).toBeInTheDocument();
     expect(screen.getByText("Account and Access")).toBeInTheDocument();
@@ -37,7 +49,8 @@ describe("App", () => {
 
     render(<App />);
 
-    await userEvent.click(screen.getByRole("button", { name: /check system/i }));
+    const checkBtn = await screen.findByRole("button", { name: /check system/i });
+    await userEvent.click(checkBtn);
 
     expect(await screen.findByText(/System Status: Offline/i)).toBeInTheDocument();
     expect(screen.getByText(/Unable to connect to TokTickIT API/i)).toBeInTheDocument();

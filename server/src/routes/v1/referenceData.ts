@@ -7,15 +7,21 @@ const router = Router();
 router.get("/development-requesters", async (_req: Request, res: Response) => {
   try {
     const prisma = getPrisma();
-    const items = await prisma.developmentRequester.findMany({
-      where: { isActive: true },
+    const users = await prisma.user.findMany({
+      where: { role: "Requester", isActive: true },
       select: {
         id: true,
-        displayName: true,
+        name: true,
         email: true,
       },
-      orderBy: { displayName: "asc" },
+      orderBy: { name: "asc" },
     });
+
+    const items = users.map((u) => ({
+      id: u.id,
+      displayName: u.name,
+      email: u.email,
+    }));
 
     res.status(200).json({ items });
   } catch {

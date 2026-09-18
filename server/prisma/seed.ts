@@ -1,4 +1,5 @@
 import { getPrisma } from "../src/prisma.js";
+import bcrypt from "bcryptjs";
 
 async function main() {
   const prisma = getPrisma();
@@ -20,46 +21,98 @@ async function main() {
   }
   console.log("Categories seeded successfully.");
 
-  // 2. Development Requesters (at least 4 active, at least 1 inactive)
-  const requesters = [
+  // 2. Users (Requesters, IT Staff, Administrators)
+  const defaultPasswordHash = await bcrypt.hash("Password123!", 10);
+  const initialPasswordHash = await bcrypt.hash("InitialPassword123!", 10);
+
+  const users = [
     {
-      displayName: "Alice Smith",
+      name: "Alice Smith",
       email: "alice.smith@university.edu",
+      role: "Requester",
       isActive: true,
+      mustChangePassword: false,
+      passwordHash: defaultPasswordHash,
     },
     {
-      displayName: "Bob Jones",
+      name: "Bob Jones",
       email: "bob.jones@university.edu",
+      role: "Requester",
       isActive: true,
+      mustChangePassword: false,
+      passwordHash: defaultPasswordHash,
     },
     {
-      displayName: "Charlie Brown",
+      name: "Charlie Brown",
       email: "charlie.brown@university.edu",
+      role: "Requester",
       isActive: true,
+      mustChangePassword: false,
+      passwordHash: defaultPasswordHash,
     },
     {
-      displayName: "Diana Prince",
+      name: "Diana Prince",
       email: "diana.prince@university.edu",
+      role: "Requester",
       isActive: true,
+      mustChangePassword: false,
+      passwordHash: defaultPasswordHash,
     },
     {
-      displayName: "Eve Mallary (Inactive)",
+      name: "Eve Mallary (Inactive)",
       email: "eve.mallary@university.edu",
+      role: "Requester",
       isActive: false,
+      mustChangePassword: false,
+      passwordHash: defaultPasswordHash,
+    },
+    {
+      name: "Initial Password User",
+      email: "initial.user@university.edu",
+      role: "Requester",
+      isActive: true,
+      mustChangePassword: true,
+      passwordHash: initialPasswordHash,
+    },
+    {
+      name: "Sam Staff",
+      email: "staff1@university.edu",
+      role: "IT Staff",
+      isActive: true,
+      mustChangePassword: false,
+      passwordHash: defaultPasswordHash,
+    },
+    {
+      name: "Alex Tech",
+      email: "staff2@university.edu",
+      role: "IT Staff",
+      isActive: true,
+      mustChangePassword: false,
+      passwordHash: defaultPasswordHash,
+    },
+    {
+      name: "Admin User",
+      email: "admin@university.edu",
+      role: "Administrator",
+      isActive: true,
+      mustChangePassword: false,
+      passwordHash: defaultPasswordHash,
     },
   ];
 
-  for (const req of requesters) {
-    await prisma.developmentRequester.upsert({
-      where: { email: req.email },
+  for (const user of users) {
+    await prisma.user.upsert({
+      where: { email: user.email },
       update: {
-        displayName: req.displayName,
-        isActive: req.isActive,
+        name: user.name,
+        role: user.role,
+        isActive: user.isActive,
+        mustChangePassword: user.mustChangePassword,
       },
-      create: req,
+      create: user,
     });
   }
-  console.log("Development Requesters seeded successfully.");
+  console.log("Users seeded successfully.");
 
   // 3. Related Systems (at least 6 realistic active items)
   const relatedSystems = [

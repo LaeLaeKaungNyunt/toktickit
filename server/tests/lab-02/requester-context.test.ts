@@ -74,8 +74,8 @@ describe("Requester Context Middleware (X-Dev-Requester-Id)", () => {
 
   it("returns 400 Bad Request if X-Dev-Requester-Id references an inactive Development Requester", async () => {
     const prisma = getPrisma();
-    const inactiveReq = await prisma.developmentRequester.findFirst({
-      where: { isActive: false },
+    const inactiveReq = await prisma.user.findFirst({
+      where: { role: "Requester", isActive: false },
     });
     expect(inactiveReq).toBeDefined();
 
@@ -95,8 +95,8 @@ describe("Requester Context Middleware (X-Dev-Requester-Id)", () => {
 
   it("calls next() and attaches devRequester when X-Dev-Requester-Id is a valid active requester UUID", async () => {
     const prisma = getPrisma();
-    const activeReq = await prisma.developmentRequester.findFirst({
-      where: { isActive: true },
+    const activeReq = await prisma.user.findFirst({
+      where: { role: "Requester", isActive: true },
     });
     expect(activeReq).toBeDefined();
 
