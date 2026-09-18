@@ -256,9 +256,10 @@ Status and IT Priority shall use consistent badge treatment.
 
 Badges shall:
 
-- Be readable without relying only on color
-- Follow the Zen Green visual system where appropriate
-- Remain consistent between the queue and Ticket Detail
+- Display supported status values from the exact eight Lab 3 statuses: `New`, `Open`, `In Progress`, `Waiting for Requester`, `Resolved`, `Closed`, `Reopened`, and `Cancelled` (obsolete `"On Hold"` is removed).
+- Be readable without relying only on color.
+- Follow the Zen Green visual system where appropriate.
+- Remain consistent between the queue and Ticket Detail.
 
 ### Open Ticket Detail
 
@@ -342,11 +343,14 @@ The interface shall:
 
 The current ticket status shall be clearly visible.
 
-Authorized IT Staff shall be provided only the status-change actions permitted by the Lab 3 workflow.
+Formal status-change actions shall be provided only to authorized staff roles (`IT Staff` and `Administrator`) according to the permitted status-transition matrix (`New` -> `Open`/`In Progress`/`Waiting for Requester`/`Cancelled`; `Open` -> `In Progress`/`Waiting for Requester`/`Resolved`/`Cancelled`; `In Progress` -> `Waiting for Requester`/`Resolved`/`Cancelled`; `Waiting for Requester` -> `In Progress`/`Resolved`/`Cancelled`; `Resolved` -> `Closed`/`Reopened`/`In Progress`; `Reopened` -> `In Progress`/`Waiting for Requester`/`Resolved`/`Cancelled`; `Closed`/`Cancelled` are terminal).
+
+Requesters must not directly change `currentStatus` in Issue #26. Requester resolution indication is provided via a separate indication control (`PATCH /api/v1/tickets/:ticketId/resolution`) that updates `requesterResolution` without altering `currentStatus`.
 
 The interface shall:
 
 - Clearly distinguish the current status
+- Provide staff with only permitted valid transitions
 - Prevent or reject invalid transitions
 - Show busy feedback during an update
 - Show safe feedback when an update fails

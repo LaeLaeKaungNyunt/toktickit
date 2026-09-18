@@ -221,7 +221,18 @@ Ticket reassignment shall be limited to authorized users and valid assignment ta
 IT Priority shall use only the values permitted by the Lab 3 specification.
 
 **BR-16 — Status Transition**  
-Ticket status changes shall follow the permitted Lab 3 status workflow. Invalid transitions shall be rejected.
+Ticket status changes shall follow the permitted Lab 3 status workflow. The supported status set consists of exactly eight values: `New`, `Open`, `In Progress`, `Waiting for Requester`, `Resolved`, `Closed`, `Reopened`, and `Cancelled` (obsolete `"On Hold"` is removed).
+
+Formal ticket status transitions shall be performed only by authorized staff roles (`IT Staff` and `Administrator`) according to the approved status-transition matrix:
+- `New` -> `Open`, `In Progress`, `Waiting for Requester`, `Cancelled`
+- `Open` -> `In Progress`, `Waiting for Requester`, `Resolved`, `Cancelled`
+- `In Progress` -> `Waiting for Requester`, `Resolved`, `Cancelled`
+- `Waiting for Requester` -> `In Progress`, `Resolved`, `Cancelled`
+- `Resolved` -> `Closed`, `Reopened`, `In Progress`
+- `Reopened` -> `In Progress`, `Waiting for Requester`, `Resolved`, `Cancelled`
+- `Closed` and `Cancelled` are permanent terminal states.
+
+Requesters shall not directly alter `currentStatus` or execute formal status transitions. A Requester's resolution indication (`requesterResolution`) is a separate indication (`PATCH /api/v1/tickets/:ticketId/resolution`) and shall never directly alter `currentStatus`. Invalid or unauthorized status transitions shall be rejected safely.
 
 **BR-17 — Public Comments**  
 Public Comments shall be visible according to the permitted ticket-access rules and shall not contain Internal Notes.
