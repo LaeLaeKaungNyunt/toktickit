@@ -325,3 +325,34 @@ export async function softRemoveAttachment(
   const data: SoftRemovedAttachmentDto = await res.json();
   return data;
 }
+
+export async function updateRequesterResolution(
+  ticketId: string,
+  requesterResolution: string | null,
+  token?: string
+): Promise<{ ticketId: string; requesterResolution: string | null }> {
+  const res = await fetch(`${API_URL}/api/v1/tickets/${ticketId}/resolution`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      ...getAuthHeaders(token),
+    },
+    body: JSON.stringify({ requesterResolution }),
+  });
+
+  if (!res.ok) {
+    let errorData: ApiErrorResponse | undefined;
+    try {
+      errorData = await res.json();
+    } catch {
+      // Ignored if response is non-JSON
+    }
+
+    const message = errorData?.error?.message ?? "Unable to update resolution indication";
+    const error = new Error(message);
+    (error as any).code = errorData?.error?.code;
+    throw error;
+  }
+
+  return res.json();
+}

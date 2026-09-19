@@ -219,17 +219,18 @@ Planned Ticket Detail tests shall verify:
 6. Invalid or unauthorized reassignment is rejected.
 7. Valid IT Priority update persists.
 8. Invalid IT Priority is rejected.
-9. Each permitted status transition succeeds.
-10. Invalid status transitions are rejected.
-11. Valid Public Comment is persisted and displayed.
-12. Public Comment visibility follows ticket-access rules.
-13. Valid Internal Note is persisted for authorized staff.
-14. Internal Notes are not returned or displayed to Requesters.
-15. Existing permitted Attachment behavior continues to work.
-16. Requester resolution indication is displayed correctly.
-17. Validation failures provide safe feedback.
-18. Material Lab 3 ticket changes append the required TicketEvent records.
-19. Existing TicketEvent history remains intact.
+9. Each permitted staff status transition succeeds according to the approved 8-status transition matrix (`New`, `Open`, `In Progress`, `Waiting for Requester`, `Resolved`, `Closed`, `Reopened`, `Cancelled`).
+10. Invalid status transitions are rejected with HTTP 409 Conflict.
+11. Requesters are strictly prohibited from directly changing `currentStatus` or executing formal status transitions.
+12. Valid Public Comment is persisted and displayed.
+13. Public Comment visibility follows ticket-access rules.
+14. Valid Internal Note is persisted for authorized staff.
+15. Internal Notes are not returned or displayed to Requesters.
+16. Existing permitted Attachment behavior continues to work.
+17. Requester resolution indication (`PATCH /api/v1/tickets/:ticketId/resolution`) sets or clears `requesterResolution` without altering `currentStatus`.
+18. Validation failures provide safe feedback.
+19. Material Lab 3 ticket changes append the required TicketEvent records.
+20. Existing TicketEvent history remains intact.
 
 ### Administrator User Management
 

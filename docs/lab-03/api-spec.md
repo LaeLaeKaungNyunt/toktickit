@@ -372,6 +372,11 @@ Empty or unsupported search input shall be handled safely.
 
 Supported filter values shall be validated.
 
+Filter parameters:
+- `status`: Allowed values are exactly the eight Lab 3 ticket statuses: `New`, `Open`, `In Progress`, `Waiting for Requester`, `Resolved`, `Closed`, `Reopened`, and `Cancelled` (obsolete `"On Hold"` is removed).
+- `priority`: Allowed values are `Low`, `Medium`, `High`, `Urgent`.
+- `assignment`: Allowed values are `assigned` or `unassigned`.
+
 Invalid status, IT Priority, assignment, or other filter values shall not silently produce misleading results.
 
 ### Sorting
@@ -402,18 +407,15 @@ A successful response shall use a structure similar to:
       },
       "category": {
         "id": 1,
-        "name": "Example Category"
+        "name": "Hardware"
       },
       "status": "New",
       "itPriority": "Medium",
-      "assignee": null
+      "assignee": null,
+      "createdAt": "2026-09-18T08:00:00.000Z",
+      "updatedAt": "2026-09-18T08:00:00.000Z"
     }
   ],
-  "pagination": {
-    "page": 1,
-    "pageSize": 20,
-    "totalItems": 1,
-    "totalPages": 1
   }
 }
 ```
@@ -579,6 +581,11 @@ Updates IT Priority.
 
 Performs a permitted ticket status transition.
 
+#### Authorization
+
+- Accessible only to authorized staff roles (`IT Staff` and `Administrator`).
+- Requesters are strictly prohibited from executing formal status transitions or directly altering `currentStatus`. There is NO `PATCH /api/v1/tickets/:ticketId/status` endpoint for Requesters.
+
 #### Request
 
 ```json
@@ -589,25 +596,57 @@ Performs a permitted ticket status transition.
 
 #### Rules
 
-- The requested status must be a supported Lab 3 status.
-- The transition must be permitted from the ticket's current status.
-- Invalid transitions shall be rejected rather than silently accepted.
+- The requested status must be one of the eight supported Lab 3 statuses: `New`, `Open`, `In Progress`, `Waiting for Requester`, `Resolved`, `Closed`, `Reopened`, `Cancelled`.
+- Formal status transitions shall follow the permitted staff status-transition matrix:
+  - `New` -> `Open`, `In Progress`, `Waiting for Requester`, `Cancelled`
+  - `Open` -> `In Progress`, `Waiting for Requester`, `Resolved`, `Cancelled`
+  - `In Progress` -> `Waiting for Requester`, `Resolved`, `Cancelled`
+  - `Waiting for Requester` -> `In Progress`, `Resolved`, `Cancelled`
+  - `Resolved` -> `Closed`, `Reopened`, `In Progress`
+  - `Reopened` -> `In Progress`, `Waiting for Requester`, `Resolved`, `Cancelled`
+  - `Closed` and `Cancelled` are permanent terminal states.
+- Invalid transitions shall be rejected safely with HTTP 409 Conflict.
 - Successful material status changes shall create the required TicketEvent.
 
 #### Failure
 
 - `400 Bad Request` — invalid status value
 - `401 Unauthorized`
-- `403 Forbidden`
+- `403 Forbidden` — non-staff user attempted status transition
 - `404 Not Found`
-- `409 Conflict` — requested transition is not permitted from the current state
+- `409 Conflict` — requested transition is not permitted from current status
 - `500 Internal Server Error`
 
-### Requester Resolution Indication
+### PATCH `/api/v1/tickets/:ticketId/resolution` (Requester Resolution Indication)
 
-The Ticket Detail response shall include the Requester resolution information required by Lab 3 in a form that allows the UI to display the indication clearly.
+Sets or clears the Requester resolution indication for a ticket.
 
-The API shall preserve the meaning of this value rather than requiring the client to infer resolution state from unrelated fields.
+#### Authorization
+
+- Accessible to authenticated Requesters for their own tickets, as well as IT Staff and Administrators.
+
+#### Request
+
+```json
+{
+  "requesterResolution": "RESOLVED"
+}
+```
+*(or `"requesterResolution": null` to clear)*
+
+#### Rules
+
+- Updates only the `requesterResolution` field on the ticket (`"RESOLVED"` or `null`).
+- CRITICAL: Setting or clearing `requesterResolution` MUST NEVER change `currentStatus`.
+- Requesters must not directly change `currentStatus`. Formal Ticket status transitions are performed only by permitted staff roles via `PATCH /api/v1/staff/tickets/:ticketId/status`.
+
+#### Failure
+
+- `400 Bad Request` — invalid resolution value (must be `"RESOLVED"` or `null`)
+- `401 Unauthorized`
+- `403 Forbidden`
+- `404 Not Found`
+- `500 Internal Server Error`
 
 ### Attachment Continuity
 

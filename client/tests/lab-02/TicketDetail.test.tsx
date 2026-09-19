@@ -360,5 +360,28 @@ describe("TicketDetail Component (Issue #15)", () => {
       const reasonInput = await screen.findByLabelText(/Removal Reason/i);
       expect(reasonInput).toBeInTheDocument();
     });
+
+    it("displays inline Bootstrap danger alert on requester-resolution API failure without calling window.alert", async () => {
+      const windowAlertSpy = vi.spyOn(window, "alert").mockImplementation(() => {});
+      vi.mocked(api.updateRequesterResolution).mockRejectedValueOnce(
+        new Error("Forbidden: insufficient permissions")
+      );
+
+      renderWithRequester("tkt-1234");
+
+      await waitFor(() => {
+        expect(screen.getByText("TKT-2026-00001")).toBeInTheDocument();
+      });
+
+      const resolutionBtn = screen.getByRole("button", { name: /Mark as Resolved|Resolved by You/i });
+      fireEvent.click(resolutionBtn);
+
+      const alertBanner = await screen.findByTestId("resolution-error-alert");
+      expect(alertBanner).toBeInTheDocument();
+      expect(alertBanner).toHaveTextContent("Forbidden: insufficient permissions");
+      expect(windowAlertSpy).not.toHaveBeenCalled();
+
+      windowAlertSpy.mockRestore();
+    });
   });
 });
