@@ -305,57 +305,66 @@ The checklist shall confirm:
 
 ## 5. Test Execution and Final Status
 
-This section shall be updated as Lab 3 implementation and verification are completed. Planned tests shall not be marked as passed until the corresponding implementation has been executed and verified.
+Lab 3 implementation and integrated verification are complete. The final automated suites cover authentication, authorization, Requester regression, IT Staff workflows, Administrator User Management, migration, UI behavior, and end-to-end workflows.
 
 ### Actual Test Files
 
-Actual Lab 3 test files shall be recorded here after implementation.
-
 | Test Area | Actual Test File(s) | Final Status |
 |---|---|---|
-| Authentication | To be completed | Planned |
-| Authorization | To be completed | Planned |
-| Requester Regression | To be completed | Planned |
-| IT Staff Queue | To be completed | Planned |
-| IT Staff Ticket Detail | To be completed | Planned |
-| Public Comments / Internal Notes | To be completed | Planned |
-| Administrator User Management | To be completed | Planned |
-| Migration / Data Preservation | To be completed | Planned |
-| Client / UI | To be completed | Planned |
-| End-to-End | To be completed | Planned |
-| Visual / Responsive | To be completed | Planned |
+| Authentication | `server/tests/lab-03/auth.api.test.ts` | Passed |
+| Authorization | `server/tests/lab-03/authorization.api.test.ts` | Passed |
+| Requester Regression | `server/tests/lab-02/create-ticket.test.ts`, `server/tests/lab-02/my-tickets.test.ts`, `server/tests/lab-02/ticket-detail.test.ts`, `server/tests/lab-02/attachment.test.ts`, `client/tests/lab-02/CreateTicketForm.test.tsx`, `client/tests/lab-02/MyTickets.test.tsx`, `client/tests/lab-02/TicketDetail.test.tsx` | Passed |
+| IT Staff Queue | `server/tests/lab-03/staff-queue.api.test.ts`, `client/tests/lab-03/StaffTicketQueue.test.tsx` | Passed |
+| IT Staff Ticket Detail | `server/tests/lab-03/staff-ticket-detail.api.test.ts`, `client/tests/lab-03/StaffTicketDetail.test.tsx` | Passed |
+| Public Comments / Internal Notes | `server/tests/lab-03/comments-notes.api.test.ts`, `client/tests/lab-03/StaffTicketDetail.test.tsx` | Passed |
+| Administrator User Management | `server/tests/lab-03/users-admin.api.test.ts`, `client/tests/lab-03/UserManagement.test.tsx` | Passed |
+| Migration / Data Preservation | `server/tests/lab-03/migration.test.ts` | Passed |
+| Client / UI | `client/tests/lab-02/*.test.tsx`, `client/tests/lab-03/*.test.tsx` | Passed |
+| End-to-End Authentication / Requester | `e2e/lab-03/authentication.spec.ts` | Passed |
+| End-to-End IT Staff | `e2e/lab-03/staff-ticket-flow.spec.ts` | Passed |
+| End-to-End Administrator | `e2e/lab-03/user-administration.spec.ts` | Passed |
+| Visual / Responsive | `artifacts/lab-03/screenshots/` and the completed checklist in `docs/lab-03/ui-spec.md` | Passed |
 
 ### Final Automated Test Results
 
-The following results shall be recorded from the final release-ready code:
+Final integrated verification on `lab3-staging`:
 
-- Server unit tests: Pending
-- Server API/integration tests: Pending
-- Authentication tests: Pending
-- Authorization tests: Pending
-- Lab 2 regression tests: Pending
-- Client/UI tests: Pending
-- Lab 3 E2E tests: Pending
-- Server production build: Pending
-- Client production build: Pending
+- **Server tests:** 16 test files, 130 tests passed
+- **Client tests:** 7 test files, 56 tests passed
+- **Authentication and authorization:** Passed as part of the server Lab 3 suite
+- **Lab 2 Requester regression:** Passed as part of the complete server and client suites
+- **Lab 3 Playwright E2E:** 12 tests passed across 3 specification files
+- **Server production build:** Passed
+- **Client production build:** Passed
+- **Responsive visual evidence:** 24 screenshots verified
+- **Visual checklist:** Completed
+- **`git diff --check`:** Passed
 
 ### Acceptance-Criteria Completion
 
-The AC traceability table in Section 3 shall be updated during implementation so that:
+AC-01 through AC-41 are covered by the traceability plan in Section 3 and were verified through the final server, client, E2E, authorization, regression, and visual checks.
 
-- Planned test paths are replaced or supplemented with actual test-file paths where necessary.
-- Each acceptance criterion receives a final verification status.
-- Any changed test approach is documented rather than silently diverging from the original plan.
-- No required acceptance criterion remains `Planned` when Lab 3 is declared complete.
+The final verification includes:
 
-### Final Verification Rule
+1. Authentication, password-change, logout, and protected-access behavior.
+2. Backend role and ownership authorization.
+3. Existing Lab 2 Requester workflow regression.
+4. IT Staff queue and ticket-detail workflows.
+5. Public Comments, Internal Notes, Requester resolution indication, and attachment continuity.
+6. Administrator User Management and Administrator safety rules.
+7. Migration and existing-data preservation.
+8. Desktop, tablet, and mobile behavior for all major Lab 3 screens.
 
-Lab 3 shall be considered test-complete only when:
+### Final Verification Status
 
-1. Required automated tests pass from the final integrated code.
-2. Required direct API authorization checks pass.
-3. Lab 2 Requester regression behavior passes.
-4. Required E2E workflows pass.
-5. Desktop, tablet, and mobile visual verification is complete.
-6. All AC-01 through AC-41 have recorded final verification.
-7. No unresolved required test failure remains.
+Lab 3 satisfies the test-completion conditions defined in this plan:
+
+- required automated tests pass;
+- direct API authorization is verified;
+- Requester regression behavior passes;
+- required E2E workflows pass;
+- desktop, tablet, and mobile visual verification is complete;
+- AC-01 through AC-41 have final verification coverage; and
+- no unresolved required test failure remains.
+
+**Final status: Passed.**
