@@ -147,7 +147,7 @@ describe("Lab 3 Auth API (/api/v1/auth)", () => {
   it("AC-06: Logout invalidates the active authenticated token (returns 401 on subsequent requests)", async () => {
     const loginRes = await request(app)
       .post("/api/v1/auth/login")
-      .send({ email: "admin@university.edu", password: "Password123!" });
+      .send({ email: "charlie.brown@university.edu", password: "Password123!" });
 
     const token = loginRes.body.token;
 
