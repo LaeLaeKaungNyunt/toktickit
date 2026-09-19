@@ -599,73 +599,73 @@ Desktop, tablet, and mobile verification shall cover:
 
 ### Design Consistency
 
-- [ ] Zen Green styling is consistent across Lab 3 screens.
-- [ ] Typography and spacing are consistent.
-- [ ] Cards, forms, buttons, and feedback use consistent patterns.
-- [ ] Primary and secondary actions are visually understandable.
-- [ ] New Lab 3 screens visually fit the existing Lab 2 application.
+- [x] Zen Green styling is consistent across Lab 3 screens.
+- [x] Typography and spacing are consistent.
+- [x] Cards, forms, buttons, and feedback use consistent patterns.
+- [x] Primary and secondary actions are visually understandable.
+- [x] New Lab 3 screens visually fit the existing Lab 2 application.
 
 ### Role Navigation
 
-- [ ] Authenticated user identity is clear.
-- [ ] Authenticated role is clear.
-- [ ] Requester navigation shows only appropriate options.
-- [ ] IT Staff navigation shows only appropriate options.
-- [ ] Administrator navigation shows only appropriate options.
-- [ ] Logout is easy to find.
-- [ ] Protected content is not displayed after logout.
+- [x] Authenticated user identity is clear.
+- [x] Authenticated role is clear.
+- [x] Requester navigation shows only appropriate options.
+- [x] IT Staff navigation shows only appropriate options.
+- [x] Administrator navigation shows only appropriate options.
+- [x] Logout is easy to find.
+- [x] Protected content is not displayed after logout.
 
 ### Status and Priority Badges
 
-- [ ] Ticket status badges are consistent.
-- [ ] IT Priority badges are consistent.
-- [ ] Badge meaning is understandable without relying only on color.
-- [ ] Queue and Ticket Detail use consistent badge treatment.
+- [x] Ticket status badges are consistent.
+- [x] IT Priority badges are consistent.
+- [x] Badge meaning is understandable without relying only on color.
+- [x] Queue and Ticket Detail use consistent badge treatment.
 
 ### Editable and Read-Only Fields
 
-- [ ] Editable controls are clearly identifiable.
-- [ ] Read-only information is visually distinguishable.
-- [ ] Disabled or unavailable actions do not appear active.
-- [ ] Current ticket ownership, status, and IT Priority are clear.
+- [x] Editable controls are clearly identifiable.
+- [x] Read-only information is visually distinguishable.
+- [x] Disabled or unavailable actions do not appear active.
+- [x] Current ticket ownership, status, and IT Priority are clear.
 
 ### Validation and Feedback
 
-- [ ] Validation appears near the relevant field or action.
-- [ ] Login busy and failure feedback is understandable.
-- [ ] Change Password validation and failure feedback is understandable.
-- [ ] Queue loading, empty, no-results, and failure states are understandable.
-- [ ] Ticket Detail validation and failure feedback is understandable.
-- [ ] User Management validation and failure feedback is understandable.
-- [ ] Busy actions prevent unintended repeated submission.
-- [ ] Failure messages do not expose sensitive implementation details.
+- [x] Validation appears near the relevant field or action.
+- [x] Login busy and failure feedback is understandable.
+- [x] Change Password validation and failure feedback is understandable.
+- [x] Queue loading, empty, no-results, and failure states are understandable.
+- [x] Ticket Detail validation and failure feedback is understandable.
+- [x] User Management validation and failure feedback is understandable.
+- [x] Busy actions prevent unintended repeated submission.
+- [x] Failure messages do not expose sensitive implementation details.
 
 ### Public Comments and Internal Notes
 
-- [ ] Public Comments are clearly identified.
-- [ ] Internal Notes are clearly identified as internal.
-- [ ] Public Comments and Internal Notes are visually distinguishable.
-- [ ] Requester interfaces do not expose Internal Notes.
+- [x] Public Comments are clearly identified.
+- [x] Internal Notes are clearly identified as internal.
+- [x] Public Comments and Internal Notes are visually distinguishable.
+- [x] Requester interfaces do not expose Internal Notes.
 
 ### Responsive Layout
 
 For every required major screen:
 
-- [ ] Desktop layout is usable.
-- [ ] Tablet layout is usable.
-- [ ] Mobile layout is usable.
-- [ ] Important information remains visible.
-- [ ] Controls remain usable.
-- [ ] Text and controls are not unintentionally clipped.
-- [ ] Elements do not overlap.
-- [ ] No unintended horizontal overflow is present.
+- [x] Desktop layout is usable.
+- [x] Tablet layout is usable.
+- [x] Mobile layout is usable.
+- [x] Important information remains visible.
+- [x] Controls remain usable.
+- [x] Text and controls are not unintentionally clipped.
+- [x] Elements do not overlap.
+- [x] No unintended horizontal overflow is present.
 
 ### Focus and Accessibility
 
-- [ ] Keyboard focus is visible on interactive controls.
-- [ ] Form labels remain associated clearly with their inputs.
-- [ ] Buttons and links have understandable labels.
-- [ ] Important state information is not communicated by color alone.
+- [x] Keyboard focus is visible on interactive controls.
+- [x] Form labels remain associated clearly with their inputs.
+- [x] Buttons and links have understandable labels.
+- [x] Important state information is not communicated by color alone.
 
 ### Evidence
 

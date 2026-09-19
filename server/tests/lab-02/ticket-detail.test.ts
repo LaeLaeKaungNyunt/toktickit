@@ -3,6 +3,7 @@ import request from "supertest";
 import jwt from "jsonwebtoken";
 import { app } from "../../src/app.js";
 import { getPrisma } from "../../src/prisma.js";
+import { allocateTicketNumber } from "../../src/utils/ticketNumber.js";
 
 const JWT_SECRET = process.env.JWT_SECRET || "dev-toktickit-jwt-secret-key";
 
@@ -70,9 +71,10 @@ describe("Ticket Detail Feature (GET /api/v1/tickets/:ticketId)", () => {
     activeRelatedSystemId = system!.id;
 
     // Create a Ticket owned by Requester A
+    const ticketNumber = await allocateTicketNumber(prisma);
     const ticketA = await prisma.ticket.create({
       data: {
-        ticketNumber: `TKT-2026-${Math.floor(10000 + Math.random() * 90000)}`,
+        ticketNumber,
         requesterId: requesterAId,
         categoryId,
         relatedSystemId: activeRelatedSystemId,
