@@ -8,6 +8,7 @@ import Login from "./components/Login.js";
 import ChangePassword from "./components/ChangePassword.js";
 import { StaffTicketQueue } from "./components/StaffTicketQueue.js";
 import { StaffTicketDetail } from "./components/StaffTicketDetail.js";
+import { UserManagement } from "./components/UserManagement.js";
 
 type UiState = "idle" | "loading" | "success" | "error";
 type TabState = "create" | "list";
@@ -163,6 +164,22 @@ export function AppContent() {
           ) : (
             <StaffTicketQueue onSelectTicket={(ticketId) => setSelectedTicketId(ticketId)} />
           )}
+        </>
+      ) : user.role === "Administrator" ? (
+        <>
+          <ul className="nav nav-tabs mb-4">
+            <li className="nav-item">
+              <button
+                type="button"
+                className="nav-link active fw-bold"
+                style={{ color: "#006B3C" }}
+              >
+                User Management
+              </button>
+            </li>
+          </ul>
+
+          <UserManagement />
         </>
       ) : (
         <div className="card mb-4 border shadow-sm">
