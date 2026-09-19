@@ -2,11 +2,13 @@ import { useState, FormEvent } from "react";
 import { useAuth } from "../context/AuthContext.js";
 
 export default function Login() {
-  const { login } = useAuth();
+  const { login, error: authError } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const displayError = errorMessage || authError;
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -37,9 +39,9 @@ export default function Login() {
           Enter your registered email and password to access the IT Service Desk.
         </p>
 
-        {errorMessage && (
+        {displayError && (
           <div className="alert alert-danger py-2 small" role="alert" id="login-error-alert">
-            {errorMessage}
+            {displayError}
           </div>
         )}
 

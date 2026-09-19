@@ -54,7 +54,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [token]);
 
   async function login(email: string, password: string) {
-    setLoading(true);
     setError(null);
     try {
       const res = await loginApi(email, password);
@@ -64,8 +63,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (err: any) {
       setError(err.message || "Failed to log in");
       throw err;
-    } finally {
-      setLoading(false);
     }
   }
 
@@ -82,12 +79,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem(TOKEN_KEY);
     setToken(null);
     setUser(null);
+    setError(null);
     setLoading(false);
   }
 
   async function changePassword(newPassword: string, confirmPassword: string) {
     if (!token) throw new Error("No active session");
-    setLoading(true);
     setError(null);
     try {
       const res = await changePasswordApi(token, newPassword, confirmPassword);
@@ -97,8 +94,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (err: any) {
       setError(err.message || "Failed to change password");
       throw err;
-    } finally {
-      setLoading(false);
     }
   }
 
