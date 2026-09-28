@@ -1,6 +1,6 @@
 # TokTickIT
 
-TokTickIT is an IT service desk application developed for the Software Engineering course. Lab 2 extends the project with requester ticketing, ticket management, attachments, and the Zen Green UI foundation.
+TokTickIT is an IT service desk application developed for the Software Engineering course. Lab 3 extends the project with authentication, role-based authorization, IT Staff ticket workflows, Administrator user management, and end-to-end verification.
 
 ## Technology Stack
 
@@ -128,3 +128,19 @@ Lab 2 implements the requester ticketing MVP with:
 - Automated frontend and backend tests
 
 Lab 2 was developed using separate Issues, feature branches, Pull Requests, peer review, and final integration through `lab2-staging` into `main`.
+
+## Lab 3
+
+Lab 3 extends TokTickIT with authenticated and role-based workflows:
+
+- User authentication and mandatory first-password change
+- Role-based authorization for Requester, IT Staff, and Administrator
+- Authenticated Requester ticket workflow
+- IT Staff ticket queue with filtering, sorting, and pagination
+- IT Staff ticket detail with claim, reassignment, priority, and status operations
+- Public Comments and Internal Notes
+- Administrator User Management
+- Playwright end-to-end and responsive visual verification
+- Automated frontend and backend regression tests
+
+Lab 3 was developed using separate Issues, feature branches, Pull Requests, peer review, and final integration through `lab3-staging` into `main`.
