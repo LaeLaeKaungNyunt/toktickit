@@ -149,5 +149,3 @@ test.describe("Lab 3 E2E — Authentication, Navigation & Screenshots", () => {
     expect(meRes.status()).toBe(401);
   });
 });
-
-
