@@ -56,171 +56,171 @@ Existing Lab 2 Requesters must be migrated to real users without losing their ti
 
 ### Authentication
 
-**FR-01 — User Login**  
+**FR-01 — User Login**
 The system shall allow an active user to log in using their registered email and password.
 
-**FR-02 — Invalid Login Handling**  
+**FR-02 — Invalid Login Handling**
 The system shall reject invalid credentials with safe feedback that does not expose sensitive authentication details.
 
-**FR-03 — Inactive Account Handling**  
+**FR-03 — Inactive Account Handling**
 The system shall prevent inactive users from logging in.
 
-**FR-04 — Mandatory Password Change**  
+**FR-04 — Mandatory Password Change**
 The system shall require users with an initial password to change their password before accessing normal authenticated features.
 
-**FR-05 — Authenticated User Context**  
+**FR-05 — Authenticated User Context**
 The system shall maintain the authenticated user's identity and role and make them available to authorized application features.
 
-**FR-06 — Logout**  
+**FR-06 — Logout**
 The system shall allow an authenticated user to log out and shall block authenticated routes and APIs after logout.
 
 ### Requester
 
-**FR-07 — Authenticated Requester Identity**  
+**FR-07 — Authenticated Requester Identity**
 The system shall use the authenticated Requester identity instead of the temporary Development Requester selector from Lab 2.
 
-**FR-08 — Requester Ticket Creation**  
+**FR-08 — Requester Ticket Creation**
 An authenticated Requester shall be able to create a ticket under their own identity.
 
-**FR-09 — Requester Ticket Access**  
+**FR-09 — Requester Ticket Access**
 An authenticated Requester shall be able to view only tickets they own.
 
-**FR-10 — Requester Ticket Detail and Attachments**  
+**FR-10 — Requester Ticket Detail and Attachments**
 Existing Lab 2 Ticket Detail and Attachment functionality shall continue to work for the authenticated ticket owner.
 
 ### Authorization
 
-**FR-11 — Role-Based Access**  
+**FR-11 — Role-Based Access**
 The system shall enforce access according to the Requester, IT Staff, and Administrator roles at both UI and API levels.
 
-**FR-12 — Unauthorized Access**  
+**FR-12 — Unauthorized Access**
 The system shall reject attempts to access features or perform operations that are not permitted for the authenticated user's role.
 
 ### IT Staff Ticket Queue
 
-**FR-13 — Staff Ticket Queue**  
+**FR-13 — Staff Ticket Queue**
 An authenticated IT Staff user shall be able to view the IT Staff ticket queue.
 
-**FR-14 — Queue Search and Filters**  
+**FR-14 — Queue Search and Filters**
 The IT Staff queue shall support ticket search and the required filtering controls.
 
-**FR-15 — Queue Sorting and Pagination**  
+**FR-15 — Queue Sorting and Pagination**
 The IT Staff queue shall support deterministic sorting and pagination.
 
-**FR-16 — Queue Ticket Information**  
+**FR-16 — Queue Ticket Information**
 The queue shall clearly display relevant ticket information, including ticket number, requester, category, status, IT Priority, and assignment state.
 
-**FR-17 — Open Ticket Detail**  
+**FR-17 — Open Ticket Detail**
 IT Staff shall be able to open an authorized Ticket Detail from the queue.
 
 ### IT Staff Ticket Detail and Operations
 
-**FR-18 — Ticket Claim and Reassignment**  
+**FR-18 — Ticket Claim and Reassignment**
 Authorized IT Staff shall be able to claim unassigned tickets and perform permitted ticket reassignment.
 
-**FR-19 — IT Priority**  
+**FR-19 — IT Priority**
 Authorized IT Staff shall be able to set or update a ticket's IT Priority.
 
-**FR-20 — Ticket Status**  
+**FR-20 — Ticket Status**
 Authorized IT Staff shall be able to perform only permitted ticket status transitions.
 
-**FR-21 — Public Comments**  
+**FR-21 — Public Comments**
 Authorized users shall be able to add and view Public Comments according to their role permissions.
 
-**FR-22 — Internal Notes**  
+**FR-22 — Internal Notes**
 Authorized IT Staff shall be able to add and view Internal Notes, while Requesters shall not have access to Internal Notes.
 
-**FR-23 — Attachment Continuity**  
+**FR-23 — Attachment Continuity**
 Existing attachment functionality shall remain available according to the applicable Lab 3 role and ownership rules.
 
-**FR-24 — Requester Resolution Indication**  
+**FR-24 — Requester Resolution Indication**
 The Ticket Detail interface shall display the required Requester resolution indication.
 
-**FR-25 — Ticket Event History**  
+**FR-25 — Ticket Event History**
 Material ticket operations required by Lab 3 shall be recorded in the existing append-only ticket event history where applicable.
 
 ### Administrator User Management
 
-**FR-26 — User List**  
+**FR-26 — User List**
 An authenticated Administrator shall be able to view users with Name, Email, Role, Status, and an Edit action.
 
-**FR-27 — User Search and Filter**  
+**FR-27 — User Search and Filter**
 The Administrator shall be able to search users by name or email and use the permitted role filter.
 
-**FR-28 — Create User**  
+**FR-28 — Create User**
 The Administrator shall be able to create a user with valid account information, exactly one permitted role, and an initial password.
 
-**FR-29 — Edit User**  
+**FR-29 — Edit User**
 The Administrator shall be able to edit a user's permitted name, email, role, and activation status.
 
-**FR-30 — Reset Initial Password**  
+**FR-30 — Reset Initial Password**
 The Administrator shall be able to set a new initial password that requires the user to change it at the next login.
 
-**FR-31 — Administrator Safety Rules**  
+**FR-31 — Administrator Safety Rules**
 The system shall prevent an Administrator from deactivating their own account and prevent removal of the last active Administrator.
 
 ### User Interface and Verification
 
-**FR-32 — Safe UI States**  
+**FR-32 — Safe UI States**
 Lab 3 interfaces shall provide appropriate loading, validation, empty or no-results, and safe failure feedback where applicable.
 
-**FR-33 — Responsive Zen Green UI**  
+**FR-33 — Responsive Zen Green UI**
 Major Lab 3 screens shall follow the existing Zen Green design direction and remain usable on desktop, tablet, and mobile layouts.
 
 ## 5. Business Rules
 
 ### Authentication and Accounts
 
-**BR-01 — Unique Email**  
+**BR-01 — Unique Email**
 Each user account shall have a unique email address.
 
-**BR-02 — Secure Password Storage**  
+**BR-02 — Secure Password Storage**
 Passwords shall never be stored as plain text and shall be stored using secure password hashing.
 
-**BR-03 — Active Account Requirement**  
+**BR-03 — Active Account Requirement**
 Only active users may authenticate and access protected application features.
 
-**BR-04 — Initial Password Change**  
+**BR-04 — Initial Password Change**
 A user with an initial or reset password must change it before accessing normal authenticated features.
 
-**BR-05 — Session Termination**  
+**BR-05 — Session Termination**
 After logout, the previous authenticated session shall no longer provide access to protected routes or APIs.
 
 ### Roles and Authorization
 
-**BR-06 — Single Role**  
+**BR-06 — Single Role**
 Each user shall have exactly one role: Requester, IT Staff, or Administrator.
 
-**BR-07 — Server-Side Authorization**  
+**BR-07 — Server-Side Authorization**
 Authorization shall be enforced by the backend. Hiding an action in the UI alone is not sufficient authorization.
 
-**BR-08 — Requester Ownership**  
+**BR-08 — Requester Ownership**
 Requesters may access only tickets and attachments permitted by their authenticated identity and ticket ownership.
 
-**BR-09 — IT Staff Access**  
+**BR-09 — IT Staff Access**
 IT Staff may access staff ticket-management features permitted by the Lab 3 authorization rules.
 
-**BR-10 — Administrator Access**  
+**BR-10 — Administrator Access**
 User Management operations are restricted to Administrators.
 
 ### Ticket Management
 
-**BR-11 — Preserved Requester Ownership**  
+**BR-11 — Preserved Requester Ownership**
 Migration from Lab 2 shall preserve the relationship between existing Requesters and their existing Tickets.
 
-**BR-12 — Preserved Existing Data**  
+**BR-12 — Preserved Existing Data**
 Lab 3 migration shall preserve existing Ticket and Attachment data.
 
-**BR-13 — Ticket Claim**  
+**BR-13 — Ticket Claim**
 An authorized IT Staff user may claim an unassigned ticket according to the permitted assignment rules.
 
-**BR-14 — Ticket Reassignment**  
+**BR-14 — Ticket Reassignment**
 Ticket reassignment shall be limited to authorized users and valid assignment targets.
 
-**BR-15 — IT Priority**  
+**BR-15 — IT Priority**
 IT Priority shall use only the values permitted by the Lab 3 specification.
 
-**BR-16 — Status Transition**  
+**BR-16 — Status Transition**
 Ticket status changes shall follow the permitted Lab 3 status workflow. The supported status set consists of exactly eight values: `New`, `Open`, `In Progress`, `Waiting for Requester`, `Resolved`, `Closed`, `Reopened`, and `Cancelled` (obsolete `"On Hold"` is removed).
 
 Formal ticket status transitions shall be performed only by authorized staff roles (`IT Staff` and `Administrator`) according to the approved status-transition matrix:
@@ -234,50 +234,50 @@ Formal ticket status transitions shall be performed only by authorized staff rol
 
 Requesters shall not directly alter `currentStatus` or execute formal status transitions. A Requester's resolution indication (`requesterResolution`) is a separate indication (`PATCH /api/v1/tickets/:ticketId/resolution`) and shall never directly alter `currentStatus`. Invalid or unauthorized status transitions shall be rejected safely.
 
-**BR-17 — Public Comments**  
+**BR-17 — Public Comments**
 Public Comments shall be visible according to the permitted ticket-access rules and shall not contain Internal Notes.
 
-**BR-18 — Internal Notes**  
+**BR-18 — Internal Notes**
 Internal Notes shall be restricted to authorized staff and shall never be exposed to Requesters.
 
-**BR-19 — Attachment Authorization**  
+**BR-19 — Attachment Authorization**
 Attachment access and permitted attachment operations shall be authorized using the current authenticated user and applicable ticket-access rules.
 
-**BR-20 — Ticket Event History**  
+**BR-20 — Ticket Event History**
 Material Lab 3 ticket changes shall create append-only ticket events where required. Existing event history shall not be rewritten.
 
 ### Administrator User Management
 
-**BR-21 — User Creation Role**  
+**BR-21 — User Creation Role**
 An Administrator may assign exactly one permitted role when creating a user.
 
-**BR-22 — Duplicate Email**  
+**BR-22 — Duplicate Email**
 The system shall reject creation or editing that would produce a duplicate user email.
 
-**BR-23 — Initial Password for New Users**  
+**BR-23 — Initial Password for New Users**
 A newly created user shall receive an initial password and shall be required to change it at first login.
 
-**BR-24 — Password Reset by Administrator**  
+**BR-24 — Password Reset by Administrator**
 When an Administrator sets a new initial password for a user, that user shall be required to change it at the next login.
 
-**BR-25 — Self-Deactivation Protection**  
+**BR-25 — Self-Deactivation Protection**
 An Administrator shall not be allowed to deactivate their own account.
 
-**BR-26 — Last Administrator Protection**  
+**BR-26 — Last Administrator Protection**
 The system shall not allow an operation that would leave TokTickIT without an active Administrator.
 
 ### Migration and Compatibility
 
-**BR-27 — Requester Migration**  
+**BR-27 — Requester Migration**
 Existing Lab 2 Development Requesters shall be migrated to authenticated Requester users without breaking their existing ownership relationships.
 
-**BR-28 — Temporary Selector Removal**  
+**BR-28 — Temporary Selector Removal**
 After authentication is introduced, the Lab 2 Development Requester selector and client-side requester-selection mechanism shall no longer determine the active user.
 
-**BR-29 — Lab 2 Regression Protection**  
+**BR-29 — Lab 2 Regression Protection**
 Existing Lab 2 Requester ticket creation, My Tickets, Ticket Detail, and Attachment behavior shall continue to work under authenticated Requester identity.
 
-**BR-30 — Scope Control**  
+**BR-30 — Scope Control**
 Lab 3 shall not introduce user deletion, multiple simultaneous roles, SLA management, escalation, notification workflows, Actions Taken, or other functionality reserved for later increments.
 
 ## 6. UI Summary
@@ -543,137 +543,137 @@ Exact HTTP methods, endpoint paths, request DTOs, response DTOs, validation rule
 
 ### Authentication
 
-**AC-01 — Valid Login**  
+**AC-01 — Valid Login**
 Given an active user with valid credentials, when the user logs in, then authentication succeeds and the application provides the authenticated user's identity and role.
 
-**AC-02 — Invalid Login**  
+**AC-02 — Invalid Login**
 Given invalid credentials, when login is attempted, then authentication is rejected with safe feedback and no authenticated session is created.
 
-**AC-03 — Inactive Account**  
+**AC-03 — Inactive Account**
 Given an inactive user, when login is attempted, then authentication is rejected and protected application features remain inaccessible.
 
-**AC-04 — Mandatory Password Change**  
+**AC-04 — Mandatory Password Change**
 Given a user whose password must be changed, when the user logs in successfully, then normal authenticated features remain unavailable until a valid new password is set.
 
-**AC-05 — Authenticated Identity and Role**  
+**AC-05 — Authenticated Identity and Role**
 Given an authenticated user, then the application displays or otherwise provides the correct user identity and role for authorized navigation and operations.
 
-**AC-06 — Logout and Protected Access**  
+**AC-06 — Logout and Protected Access**
 Given an authenticated user who logs out, when a protected route or API is accessed afterward, then access is rejected.
 
 ### Requester Regression and Authorization
 
-**AC-07 — Authenticated Requester Ticket Creation**  
+**AC-07 — Authenticated Requester Ticket Creation**
 Given an authenticated Requester, when a valid ticket is created, then the ticket is owned by that authenticated Requester without using a client-selected requester identity.
 
-**AC-08 — Requester Ownership Isolation**  
+**AC-08 — Requester Ownership Isolation**
 Given an authenticated Requester, when My Tickets is viewed, then only tickets owned by that Requester are returned.
 
-**AC-09 — Requester Ticket Detail Isolation**  
+**AC-09 — Requester Ticket Detail Isolation**
 Given an authenticated Requester, when attempting to access another Requester's ticket, then access is rejected safely.
 
-**AC-10 — Requester Attachment Authorization**  
+**AC-10 — Requester Attachment Authorization**
 Given an authenticated Requester, attachment access and permitted attachment operations succeed only when allowed by the Requester's ticket ownership.
 
-**AC-11 — Role-Based Authorization**  
+**AC-11 — Role-Based Authorization**
 Given a protected Lab 3 feature or API, when it is accessed by a role without permission, then the operation is rejected even if the API is called directly.
 
 ### IT Staff Ticket Queue
 
-**AC-12 — Staff Queue Access**  
+**AC-12 — Staff Queue Access**
 Given an authenticated IT Staff user, when the ticket queue is opened, then realistic ticket data and the required ticket information are displayed.
 
-**AC-13 — Queue Search**  
+**AC-13 — Queue Search**
 Given multiple tickets, when IT Staff performs a supported search, then the queue returns only matching results.
 
-**AC-14 — Queue Filters**  
+**AC-14 — Queue Filters**
 Given multiple tickets, when a supported queue filter is applied, then only tickets matching the selected filter are returned.
 
-**AC-15 — Queue Sorting**  
+**AC-15 — Queue Sorting**
 Given multiple tickets, when a supported sort is selected, then tickets are returned in a deterministic order.
 
-**AC-16 — Queue Pagination**  
+**AC-16 — Queue Pagination**
 Given more tickets than fit on one page, when pagination is used, then the correct page of tickets is returned without unintended duplication or omission.
 
-**AC-17 — Queue Ownership and Badges**  
+**AC-17 — Queue Ownership and Badges**
 The queue clearly indicates assigned or unassigned ownership and displays the required status and IT Priority badges.
 
-**AC-18 — Queue UI States and Detail Navigation**  
+**AC-18 — Queue UI States and Detail Navigation**
 The queue provides loading, empty or no-results, and safe failure feedback where applicable, and an authorized ticket can be opened in Ticket Detail.
 
 ### IT Staff Ticket Detail and Operations
 
-**AC-19 — Claim Ticket**  
+**AC-19 — Claim Ticket**
 Given an authorized IT Staff user and an unassigned ticket, when the ticket is claimed, then the permitted ownership change is persisted.
 
-**AC-20 — Reassign Ticket**  
+**AC-20 — Reassign Ticket**
 Given an authorized IT Staff user, when a valid reassignment is performed, then the new permitted assignment is persisted; invalid or unauthorized reassignment is rejected.
 
-**AC-21 — IT Priority**  
+**AC-21 — IT Priority**
 Given an authorized IT Staff user, when a valid IT Priority is selected, then the priority is persisted; invalid values are rejected.
 
-**AC-22 — Status Workflow**  
+**AC-22 — Status Workflow**
 Given an authorized IT Staff user, when a permitted status transition is performed, then the new status is persisted; invalid transitions are rejected.
 
-**AC-23 — Public Comments**  
+**AC-23 — Public Comments**
 Given an authorized user, when a valid Public Comment is added, then it is persisted and visible according to the permitted ticket-access rules.
 
-**AC-24 — Internal Notes**  
+**AC-24 — Internal Notes**
 Given an authorized IT Staff user, when an Internal Note is added, then it is persisted and available to authorized staff but is not exposed to Requesters.
 
-**AC-25 — Staff Attachment Continuity**  
+**AC-25 — Staff Attachment Continuity**
 Given an authorized Lab 3 user, existing Attachment functionality continues to work according to the applicable role and ticket-access rules.
 
-**AC-26 — Requester Resolution Indication**  
+**AC-26 — Requester Resolution Indication**
 Given a ticket with Requester resolution information, when its Ticket Detail is viewed, then the required resolution indication is displayed.
 
-**AC-27 — Ticket Operation Authorization and Validation**  
+**AC-27 — Ticket Operation Authorization and Validation**
 Invalid, forbidden, or conflicting Ticket Detail operations are rejected safely by the backend and produce appropriate UI feedback.
 
-**AC-28 — Ticket Event Continuity**  
+**AC-28 — Ticket Event Continuity**
 Material Lab 3 ticket changes create the required append-only event records without rewriting existing TicketEvent history.
 
 ### Administrator User Management
 
-**AC-29 — User List and Search**  
+**AC-29 — User List and Search**
 Given an authenticated Administrator, when User Management is opened, then Name, Email, Role, Status, and Edit are available, and users can be searched by name or email.
 
-**AC-30 — User Role Filter**  
+**AC-30 — User Role Filter**
 Given multiple users, when the permitted role filter is applied, then the list shows users matching that role.
 
-**AC-31 — Create User**  
+**AC-31 — Create User**
 Given valid user information, exactly one permitted role, and an initial password, when an Administrator creates the user, then the account is created and requires a password change at first login.
 
-**AC-32 — User Validation**  
+**AC-32 — User Validation**
 Duplicate email and invalid user input are rejected with appropriate validation feedback.
 
-**AC-33 — Edit User**  
+**AC-33 — Edit User**
 Given an existing user, an Administrator can update permitted name, email, role, and activation information and the valid changes are persisted.
 
-**AC-34 — Reset Initial Password**  
+**AC-34 — Reset Initial Password**
 Given an existing user, when an Administrator sets a new initial password, then the user must change that password at the next login.
 
-**AC-35 — Administrator Safety Rules**  
+**AC-35 — Administrator Safety Rules**
 An Administrator cannot deactivate their own account or perform an operation that would leave the system without an active Administrator.
 
-**AC-36 — Administrator Authorization**  
+**AC-36 — Administrator Authorization**
 Given a non-Administrator user, when User Management UI or APIs are accessed, then access is rejected.
 
 ### Migration, Regression, and UI
 
-**AC-37 — Existing Requester Migration**  
+**AC-37 — Existing Requester Migration**
 After the Lab 3 migration, existing Lab 2 Development Requesters exist as authenticated Requester users and retain ownership of their existing tickets.
 
-**AC-38 — Existing Data Preservation**  
+**AC-38 — Existing Data Preservation**
 After migration, existing Ticket, Attachment, Category, and TicketEvent data remain available and valid.
 
-**AC-39 — Lab 2 Requester Regression**  
+**AC-39 — Lab 2 Requester Regression**
 After authentication migration, the existing Create Ticket, My Tickets, Ticket Detail, and Attachment workflows continue to work for authenticated Requesters.
 
-**AC-40 — Responsive Zen Green UI**  
+**AC-40 — Responsive Zen Green UI**
 Login, Change Password, Requester screens, IT Staff queue, IT Staff Ticket Detail, and Administrator User Management remain usable and visually consistent with Zen Green at required desktop, tablet, and mobile widths.
 
-**AC-41 — Visual Quality and Feedback**  
+**AC-41 — Visual Quality and Feedback**
 Major Lab 3 screens provide appropriate validation and safe failure feedback, visible focus, clear role navigation, consistent badges and field states, and no unintended clipping, overlap, or horizontal overflow.
 
 ## 10. Product Definition of Done
