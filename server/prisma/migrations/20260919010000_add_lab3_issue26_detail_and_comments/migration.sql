@@ -50,4 +50,3 @@ WHERE "currentStatus" = 'On Hold';
 UPDATE "Ticket"
 SET "itPriority" = "requestedPriority"
 WHERE "itPriority" IS NULL;
-

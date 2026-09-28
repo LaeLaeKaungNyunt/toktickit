@@ -213,5 +213,3 @@ test.describe("Lab 3 E2E — Administrator User Management & Screenshots", () =>
     expect(staffApiRes.status()).toBe(403);
   });
 });
-
-
