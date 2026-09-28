@@ -25,16 +25,16 @@ CREATE INDEX "User_email_idx" ON "User"("email");
 
 -- Migrate existing DevelopmentRequester records to User
 INSERT INTO "User" ("id", "name", "email", "passwordHash", "role", "isActive", "mustChangePassword", "tokenVersion", "createdAt", "updatedAt")
-SELECT 
-    "id", 
-    "displayName", 
-    "email", 
+SELECT
+    "id",
+    "displayName",
+    "email",
     '$2b$10$JWTc.v/442rMhQGCZAISlezEP2ZVzsNotthFeP295XTUu9alc4T2y',
-    'Requester', 
-    "isActive", 
-    false, 
-    0, 
-    "createdAt", 
+    'Requester',
+    "isActive",
+    false,
+    0,
+    "createdAt",
     "updatedAt"
 FROM "DevelopmentRequester";
 
