@@ -130,6 +130,7 @@ export interface TicketDetailDto {
   requestedPriority: RequestedPriority;
   description: string;
   currentStatus: string;
+  requesterResolution?: string | null;
   createdAt: string;
   updatedAt: string;
   attachments: AttachmentDto[];

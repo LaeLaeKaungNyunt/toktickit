@@ -16,11 +16,11 @@ describe("Database Seed Verification (Issue #12)", () => {
 
   it("has seeded at least 4 active Development Requesters and 1 inactive Development Requester", async () => {
     const prisma = getPrisma();
-    const activeRequesters = await prisma.developmentRequester.findMany({
-      where: { isActive: true },
+    const activeRequesters = await prisma.user.findMany({
+      where: { role: "Requester", isActive: true },
     });
-    const inactiveRequesters = await prisma.developmentRequester.findMany({
-      where: { isActive: false },
+    const inactiveRequesters = await prisma.user.findMany({
+      where: { role: "Requester", isActive: false },
     });
 
     expect(activeRequesters.length).toBeGreaterThanOrEqual(4);
@@ -28,7 +28,7 @@ describe("Database Seed Verification (Issue #12)", () => {
 
     for (const requester of activeRequesters) {
       expect(requester.id).toBeDefined();
-      expect(requester.displayName).toBeDefined();
+      expect(requester.name).toBeDefined();
       expect(requester.email).toBeDefined();
       expect(requester.isActive).toBe(true);
     }

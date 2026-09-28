@@ -1,25 +1,29 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useRef } from "react";
 import { checkSystem, Category } from "./api.js";
-import { RequesterProvider, useRequester } from "./context/RequesterContext.js";
-import RequesterSelector from "./components/RequesterSelector.js";
+import { AuthProvider, useAuth } from "./context/AuthContext.js";
 import CreateTicketForm from "./components/CreateTicketForm.js";
 import MyTickets from "./components/MyTickets.js";
 import TicketDetail from "./components/TicketDetail.js";
+import Login from "./components/Login.js";
+import ChangePassword from "./components/ChangePassword.js";
+import { StaffTicketQueue } from "./components/StaffTicketQueue.js";
+import { StaffTicketDetail } from "./components/StaffTicketDetail.js";
+import { UserManagement } from "./components/UserManagement.js";
 
 type UiState = "idle" | "loading" | "success" | "error";
 type TabState = "create" | "list";
 
 export function AppContent() {
-  const { selectedRequester } = useRequester();
+  const { user, loading, logout } = useAuth();
   const [activeTab, setActiveTab] = useState<TabState>("create");
   const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
   const [state, setState] = useState<UiState>("idle");
   const [categories, setCategories] = useState<Category[]>([]);
 
-  // Synchronously reset selected ticket detail on requester change (AC-03, BR-06)
-  const prevRequesterIdRef = useRef<string | undefined>(selectedRequester?.id);
-  if (prevRequesterIdRef.current !== selectedRequester?.id) {
-    prevRequesterIdRef.current = selectedRequester?.id;
+  // Synchronously reset selected ticket detail on user change
+  const prevUserIdRef = useRef<string | undefined>(user?.id);
+  if (prevUserIdRef.current !== user?.id) {
+    prevUserIdRef.current = user?.id;
     setSelectedTicketId(null);
   }
 
@@ -36,62 +40,156 @@ export function AppContent() {
     }
   }
 
+  if (loading) {
+    return (
+      <div className="container py-5 text-center" style={{ maxWidth: 840 }}>
+        <p className="text-muted">Loading TokTickIT...</p>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="container py-5" style={{ maxWidth: 840 }}>
+        <h1 className="h3 mb-4 text-center">
+          TokTickIT <span style={{ color: "#006B3C" }}>IT Service Desk</span>
+        </h1>
+        <Login />
+      </div>
+    );
+  }
+
+  if (user.mustChangePassword) {
+    return (
+      <div className="container py-5" style={{ maxWidth: 840 }}>
+        <h1 className="h3 mb-4 text-center">
+          TokTickIT <span style={{ color: "#006B3C" }}>IT Service Desk</span>
+        </h1>
+        <ChangePassword />
+      </div>
+    );
+  }
+
   return (
-    <div className="container py-5" style={{ maxWidth: 840 }}>
-      <h1 className="h3 mb-4">
-        TokTickIT <span style={{ color: "#006B3C" }}>IT Service Desk</span>
-      </h1>
+    <div className="container py-5" style={{ maxWidth: 960 }}>
+      <div className="d-flex justify-content-between align-items-center mb-4 pb-3 border-bottom">
+        <h1 className="h3 mb-0">
+          TokTickIT <span style={{ color: "#006B3C" }}>IT Service Desk</span>
+        </h1>
+        <div className="d-flex align-items-center gap-3">
+          <div className="text-end">
+            <span className="fw-bold d-block">{user.name}</span>
+            <span className="badge bg-secondary">{user.role}</span>
+          </div>
+          <button
+            type="button"
+            className="btn btn-outline-secondary btn-sm"
+            onClick={logout}
+          >
+            Logout
+          </button>
+        </div>
+      </div>
 
-      <RequesterSelector />
+      {user.role === "Requester" ? (
+        <>
+          <ul className="nav nav-tabs mb-4">
+            <li className="nav-item">
+              <button
+                type="button"
+                className={`nav-link ${activeTab === "create" ? "active fw-bold" : ""}`}
+                style={activeTab === "create" ? { color: "#006B3C" } : {}}
+                onClick={() => {
+                  setActiveTab("create");
+                  setSelectedTicketId(null);
+                }}
+              >
+                Create Ticket
+              </button>
+            </li>
+            <li className="nav-item">
+              <button
+                type="button"
+                className={`nav-link ${activeTab === "list" ? "active fw-bold" : ""}`}
+                style={activeTab === "list" ? { color: "#006B3C" } : {}}
+                onClick={() => {
+                  setActiveTab("list");
+                  setSelectedTicketId(null);
+                }}
+              >
+                My Tickets
+              </button>
+            </li>
+          </ul>
 
-      {selectedRequester && (
-        <ul className="nav nav-tabs mb-4">
-          <li className="nav-item">
-            <button
-              type="button"
-              className={`nav-link ${activeTab === "create" ? "active fw-bold" : ""}`}
-              style={activeTab === "create" ? { color: "#006B3C" } : {}}
-              onClick={() => {
-                setActiveTab("create");
-                setSelectedTicketId(null);
-              }}
-            >
-              Create Ticket
-            </button>
-          </li>
-          <li className="nav-item">
-            <button
-              type="button"
-              className={`nav-link ${activeTab === "list" ? "active fw-bold" : ""}`}
-              style={activeTab === "list" ? { color: "#006B3C" } : {}}
-              onClick={() => {
-                setActiveTab("list");
-                setSelectedTicketId(null);
-              }}
-            >
-              My Tickets
-            </button>
-          </li>
-        </ul>
-      )}
+          {activeTab === "create" && <CreateTicketForm />}
 
-      {(!selectedRequester || activeTab === "create") && <CreateTicketForm />}
+          {activeTab === "list" && (
+            selectedTicketId ? (
+              <TicketDetail
+                ticketId={selectedTicketId}
+                onBack={() => setSelectedTicketId(null)}
+              />
+            ) : (
+              <MyTickets
+                onNavigateToCreateTicket={() => {
+                  setActiveTab("create");
+                  setSelectedTicketId(null);
+                }}
+                onSelectTicket={(ticketId) => setSelectedTicketId(ticketId)}
+              />
+            )
+          )}
+        </>
+      ) : user.role === "IT Staff" ? (
+        <>
+          <ul className="nav nav-tabs mb-4">
+            <li className="nav-item">
+              <button
+                type="button"
+                className="nav-link active fw-bold"
+                style={{ color: "#006B3C" }}
+                onClick={() => setSelectedTicketId(null)}
+              >
+                IT Staff Queue
+              </button>
+            </li>
+          </ul>
 
-      {selectedRequester && activeTab === "list" && (
-        selectedTicketId ? (
-          <TicketDetail
-            ticketId={selectedTicketId}
-            onBack={() => setSelectedTicketId(null)}
-          />
-        ) : (
-          <MyTickets
-            onNavigateToCreateTicket={() => {
-              setActiveTab("create");
-              setSelectedTicketId(null);
-            }}
-            onSelectTicket={(ticketId) => setSelectedTicketId(ticketId)}
-          />
-        )
+          {selectedTicketId ? (
+            <StaffTicketDetail
+              ticketId={selectedTicketId}
+              onBack={() => setSelectedTicketId(null)}
+            />
+          ) : (
+            <StaffTicketQueue onSelectTicket={(ticketId) => setSelectedTicketId(ticketId)} />
+          )}
+        </>
+      ) : user.role === "Administrator" ? (
+        <>
+          <ul className="nav nav-tabs mb-4">
+            <li className="nav-item">
+              <button
+                type="button"
+                className="nav-link active fw-bold"
+                style={{ color: "#006B3C" }}
+              >
+                User Management
+              </button>
+            </li>
+          </ul>
+
+          <UserManagement />
+        </>
+      ) : (
+        <div className="card mb-4 border shadow-sm">
+          <div className="card-body py-4 text-center">
+            <h2 className="h5 fw-bold mb-2">Welcome, {user.name}</h2>
+            <p className="text-muted mb-0">
+              You are logged in with the <strong>{user.role}</strong> role. Dashboard features for {user.role}s will be available in upcoming increments.
+            </p>
+          </div>
+        </div>
       )}
 
       <div className="mt-4 border-top pt-4">
@@ -132,8 +230,8 @@ export function AppContent() {
 
 export default function App() {
   return (
-    <RequesterProvider>
+    <AuthProvider>
       <AppContent />
-    </RequesterProvider>
+    </AuthProvider>
   );
 }

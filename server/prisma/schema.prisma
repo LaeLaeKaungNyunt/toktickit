@@ -17,16 +17,26 @@ model Category {
   tickets   Ticket[]
 }
 
-model DevelopmentRequester {
+model User {
   id                 String        @id @default(uuid())
-  displayName        String
+  name               String
   email              String        @unique
+  passwordHash       String
+  role               String        // Requester | IT Staff | Administrator
   isActive           Boolean       @default(true)
+  mustChangePassword Boolean       @default(false)
+  tokenVersion       Int           @default(0)
   createdAt          DateTime      @default(now())
   updatedAt          DateTime      @updatedAt
-  tickets            Ticket[]
+  tickets            Ticket[]      @relation("TicketRequester")
+  assignedTickets    Ticket[]      @relation("TicketAssignee")
   ticketEvents       TicketEvent[]
   removedAttachments Attachment[]  @relation("AttachmentRemovedBy")
+  comments           TicketComment[]
+  internalNotes      InternalNote[]
+
+  @@index([role])
+  @@index([email])
 }
 
 model RelatedSystem {
@@ -39,40 +49,74 @@ model RelatedSystem {
 }
 
 model Ticket {
-  id                String               @id @default(uuid())
-  ticketNumber      String               @unique
-  requesterId       String
-  categoryId        Int
-  relatedSystemId   String
-  summary           String
-  description       String
-  requestedPriority String               // Low | Medium | High | Urgent
-  currentStatus     String               @default("New")
-  createdAt         DateTime             @default(now())
-  updatedAt         DateTime             @updatedAt
+  id                  String        @id @default(uuid())
+  ticketNumber        String        @unique
+  requesterId         String
+  assigneeId          String?
+  categoryId          Int
+  relatedSystemId     String
+  summary             String
+  description         String
+  requestedPriority   String        // Low | Medium | High | Urgent
+  itPriority          String?       // Low | Medium | High | Urgent | null
+  currentStatus       String        @default("New")
+  requesterResolution String?       // RESOLVED | null
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
 
-  requester         DevelopmentRequester @relation(fields: [requesterId], references: [id])
-  category          Category             @relation(fields: [categoryId], references: [id])
-  relatedSystem     RelatedSystem        @relation(fields: [relatedSystemId], references: [id])
-  ticketEvents      TicketEvent[]
-  attachments       Attachment[]
+  requester           User          @relation("TicketRequester", fields: [requesterId], references: [id])
+  assignee            User?         @relation("TicketAssignee", fields: [assigneeId], references: [id])
+  category            Category      @relation(fields: [categoryId], references: [id])
+  relatedSystem       RelatedSystem @relation(fields: [relatedSystemId], references: [id])
+  ticketEvents        TicketEvent[]
+  attachments         Attachment[]
+  comments            TicketComment[]
+  internalNotes       InternalNote[]
 
   @@index([requesterId, createdAt])
   @@index([requesterId, currentStatus])
+  @@index([assigneeId])
+  @@index([itPriority])
   @@index([categoryId])
   @@index([relatedSystemId])
 }
 
+model TicketComment {
+  id        String   @id @default(uuid())
+  ticketId  String
+  authorId  String
+  body      String
+  createdAt DateTime @default(now())
+
+  ticket    Ticket   @relation(fields: [ticketId], references: [id])
+  author    User     @relation(fields: [authorId], references: [id])
+
+  @@index([ticketId, createdAt])
+}
+
+model InternalNote {
+  id        String   @id @default(uuid())
+  ticketId  String
+  authorId  String
+  body      String
+  createdAt DateTime @default(now())
+
+  ticket    Ticket   @relation(fields: [ticketId], references: [id])
+  author    User     @relation(fields: [authorId], references: [id])
+
+  @@index([ticketId, createdAt])
+}
+
 model TicketEvent {
-  id          String                @id @default(uuid())
+  id          String   @id @default(uuid())
   ticketId    String
   actorId     String?
-  eventType   String                // e.g. TICKET_CREATED
+  eventType   String   // e.g. TICKET_CREATED
   payloadJson Json?
-  createdAt   DateTime              @default(now())
+  createdAt   DateTime @default(now())
 
-  ticket      Ticket                @relation(fields: [ticketId], references: [id])
-  actor       DevelopmentRequester? @relation(fields: [actorId], references: [id])
+  ticket      Ticket   @relation(fields: [ticketId], references: [id])
+  actor       User?    @relation(fields: [actorId], references: [id])
 
   @@index([ticketId, createdAt])
 }
@@ -84,19 +128,19 @@ model TicketSequence {
 }
 
 model Attachment {
-  id                   String                @id @default(uuid())
+  id                   String    @id @default(uuid())
   ticketId             String
   originalFilename     String
   storedObjectKey      String
   mimeType             String
   sizeBytes            Int
-  uploadedAt           DateTime              @default(now())
+  uploadedAt           DateTime  @default(now())
   removedAt            DateTime?
   removalReason        String?
   removedByRequesterId String?
 
-  ticket               Ticket                @relation(fields: [ticketId], references: [id])
-  removedByRequester   DevelopmentRequester? @relation("AttachmentRemovedBy", fields: [removedByRequesterId], references: [id])
+  ticket               Ticket    @relation(fields: [ticketId], references: [id])
+  removedByRequester   User?     @relation("AttachmentRemovedBy", fields: [removedByRequesterId], references: [id])
 
   @@index([ticketId, removedAt])
 }

@@ -1,12 +1,11 @@
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import React, { useEffect } from "react";
+import React from "react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import MyTickets from "../../src/components/MyTickets.js";
-import { RequesterProvider, useRequester } from "../../src/context/RequesterContext.js";
 import * as api from "../../src/api/lab02.js";
+import * as authContext from "../../src/context/AuthContext.js";
 import {
-  DevelopmentRequester,
   CategoryV1,
   RelatedSystem,
   MyTicketsResponseDto,
@@ -14,16 +13,12 @@ import {
 
 vi.mock("../../src/api/lab02.js");
 
-const mockRequesterA: DevelopmentRequester = {
+const mockUser = {
   id: "req-1111",
-  displayName: "Alice Smith",
+  name: "Alice Smith",
   email: "alice@university.edu",
-};
-
-const mockRequesterB: DevelopmentRequester = {
-  id: "req-2222",
-  displayName: "Bob Jones",
-  email: "bob@university.edu",
+  role: "Requester" as const,
+  mustChangePassword: false,
 };
 
 const mockCategories: CategoryV1[] = [
@@ -67,119 +62,40 @@ const emptyTicketResponse: MyTicketsResponseDto = {
   },
 };
 
-function TestWrapper({
-  initialRequester = mockRequesterA,
-  onNavigateToCreateTicket,
-}: {
-  initialRequester?: DevelopmentRequester | null;
-  onNavigateToCreateTicket?: () => void;
-}) {
-  const { setSelectedRequester } = useRequester();
-
-  useEffect(() => {
-    setSelectedRequester(initialRequester);
-  }, [initialRequester?.id]);
-
-  return (
-    <div>
-      <button
-        data-testid="set-requester-a"
-        onClick={() => setSelectedRequester(mockRequesterA)}
-      >
-        Set Requester A
-      </button>
-      <button
-        data-testid="set-requester-b"
-        onClick={() => setSelectedRequester(mockRequesterB)}
-      >
-        Set Requester B
-      </button>
-      <button
-        data-testid="clear-requester"
-        onClick={() => setSelectedRequester(null)}
-      >
-        Clear Requester
-      </button>
-      <MyTickets onNavigateToCreateTicket={onNavigateToCreateTicket} />
-    </div>
-  );
-}
-
 function renderWithRequester(
-  requester: DevelopmentRequester | null = mockRequesterA,
   onNavigateToCreateTicket?: () => void
 ) {
   return render(
-    <RequesterProvider>
-      <TestWrapper
-        initialRequester={requester}
-        onNavigateToCreateTicket={onNavigateToCreateTicket}
-      />
-    </RequesterProvider>
+    <MyTickets onNavigateToCreateTicket={onNavigateToCreateTicket} />
   );
 }
 
 describe("MyTickets Component (Issue #14)", () => {
   beforeEach(() => {
     vi.resetAllMocks();
+    vi.spyOn(authContext, "useAuth").mockReturnValue({
+      user: mockUser,
+      token: "mock-jwt-token",
+      loading: false,
+      error: null,
+      login: vi.fn(),
+      logout: vi.fn(),
+      changePassword: vi.fn(),
+      clearError: vi.fn(),
+    });
     vi.mocked(api.fetchCategoriesV1).mockResolvedValue(mockCategories);
     vi.mocked(api.fetchRelatedSystems).mockResolvedValue(mockSystems);
     vi.mocked(api.fetchMyTickets).mockResolvedValue(mockTicketResponse);
   });
 
   describe("Requester Context & Selection Requirements", () => {
-    it("displays prompt to select requester if no active requester is set", async () => {
-      renderWithRequester(null);
+    it("fetches ticket list using authenticated user token", async () => {
+      renderWithRequester();
       await waitFor(() => {
-        expect(
-          screen.getByText(/Please select a Development Requester to view tickets/i)
-        ).toBeInTheDocument();
-      });
-      expect(api.fetchMyTickets).not.toHaveBeenCalled();
-    });
-
-    it("AC-12: clears stale ticket data immediately when requester changes", async () => {
-      vi.mocked(api.fetchMyTickets).mockResolvedValueOnce(mockTicketResponse);
-
-      renderWithRequester(mockRequesterA);
-
-      await waitFor(() => {
-        expect(screen.getAllByText("TKT-2026-00001").length).toBeGreaterThan(0);
-      });
-
-      // Prepare delayed promise for Requester B to simulate loading window
-      let resolveRequesterB: (val: MyTicketsResponseDto) => void;
-      const delayedPromiseB = new Promise<MyTicketsResponseDto>((resolve) => {
-        resolveRequesterB = resolve;
-      });
-      vi.mocked(api.fetchMyTickets).mockReturnValueOnce(delayedPromiseB);
-
-      // Switch to Requester B
-      await userEvent.click(screen.getByTestId("set-requester-b"));
-
-      // Stale ticket TKT-2026-00001 must be cleared immediately during loading state
-      expect(screen.queryAllByText("TKT-2026-00001")).toHaveLength(0);
-      expect(screen.getAllByText(/Loading tickets.../i).length).toBeGreaterThan(0);
-
-      // Resolve Requester B data
-      resolveRequesterB!({
-        items: [
-          {
-            id: "tkt-id-2",
-            ticketNumber: "TKT-2026-00002",
-            summary: "Bob's Printer Issue",
-            category: { id: 2, name: "Hardware & Equipment" },
-            relatedSystem: { id: "sys-002", name: "Email System" },
-            requestedPriority: "Low",
-            currentStatus: "New",
-            createdAt: "2026-09-04T11:00:00.000Z",
-          },
-        ],
-        pagination: { page: 1, pageSize: 10, totalItems: 1, totalPages: 1 },
-      });
-
-      await waitFor(() => {
-        expect(screen.getAllByText("TKT-2026-00002").length).toBeGreaterThan(0);
+        expect(api.fetchMyTickets).toHaveBeenCalledWith(
+          expect.anything(),
+          "mock-jwt-token"
+        );
       });
     });
   });
@@ -188,7 +104,7 @@ describe("MyTickets Component (Issue #14)", () => {
     it("renders ticket list items with all required fields (Ticket Number, Summary, Category, System, Priority, Status, Date)", async () => {
       vi.mocked(api.fetchMyTickets).mockResolvedValue(mockTicketResponse);
 
-      renderWithRequester(mockRequesterA);
+      renderWithRequester();
 
       await waitFor(() => {
         expect(screen.getAllByText("TKT-2026-00001").length).toBeGreaterThan(0);
@@ -207,7 +123,7 @@ describe("MyTickets Component (Issue #14)", () => {
       vi.mocked(api.fetchMyTickets).mockResolvedValue(emptyTicketResponse);
       const onNavigateToCreate = vi.fn();
 
-      renderWithRequester(mockRequesterA, onNavigateToCreate);
+      renderWithRequester(onNavigateToCreate);
 
       await waitFor(() => {
         expect(
@@ -225,7 +141,7 @@ describe("MyTickets Component (Issue #14)", () => {
       // 1st call (unfiltered initial check): requester owns 1 ticket overall
       vi.mocked(api.fetchMyTickets).mockResolvedValueOnce(mockTicketResponse);
 
-      renderWithRequester(mockRequesterA);
+      renderWithRequester();
 
       await waitFor(() => {
         expect(screen.getAllByText("TKT-2026-00001").length).toBeGreaterThan(0);
@@ -265,7 +181,7 @@ describe("MyTickets Component (Issue #14)", () => {
     it("triggers fetchMyTickets with search query parameter and resets page to 1", async () => {
       vi.mocked(api.fetchMyTickets).mockResolvedValue(mockTicketResponse);
 
-      renderWithRequester(mockRequesterA);
+      renderWithRequester();
 
       await waitFor(() => {
         expect(screen.getAllByText("TKT-2026-00001").length).toBeGreaterThan(0);
@@ -283,7 +199,7 @@ describe("MyTickets Component (Issue #14)", () => {
             search: "printer",
             page: 1,
           }),
-          mockRequesterA.id
+          "mock-jwt-token"
         );
       });
     });
@@ -293,7 +209,7 @@ describe("MyTickets Component (Issue #14)", () => {
     it("provides filter controls for status, categoryId, relatedSystemId, requestedPriority and combines them", async () => {
       vi.mocked(api.fetchMyTickets).mockResolvedValue(mockTicketResponse);
 
-      renderWithRequester(mockRequesterA);
+      renderWithRequester();
 
       await waitFor(() => {
         expect(screen.getAllByText("General IT Support").length).toBeGreaterThan(0);
@@ -314,7 +230,7 @@ describe("MyTickets Component (Issue #14)", () => {
             requestedPriority: "High",
             page: 1,
           }),
-          mockRequesterA.id
+          "mock-jwt-token"
         );
       });
     });
@@ -324,7 +240,7 @@ describe("MyTickets Component (Issue #14)", () => {
     it("provides sort controls (sortBy, sortOrder) defaulting to createdAt desc", async () => {
       vi.mocked(api.fetchMyTickets).mockResolvedValue(mockTicketResponse);
 
-      renderWithRequester(mockRequesterA);
+      renderWithRequester();
 
       await waitFor(() => {
         expect(api.fetchMyTickets).toHaveBeenCalledWith(
@@ -332,7 +248,7 @@ describe("MyTickets Component (Issue #14)", () => {
             sortBy: "createdAt",
             sortOrder: "desc",
           }),
-          mockRequesterA.id
+          "mock-jwt-token"
         );
       });
 
@@ -345,7 +261,7 @@ describe("MyTickets Component (Issue #14)", () => {
             sortBy: "requestedPriority",
             page: 1,
           }),
-          mockRequesterA.id
+          "mock-jwt-token"
         );
       });
     });
@@ -364,7 +280,7 @@ describe("MyTickets Component (Issue #14)", () => {
       };
       vi.mocked(api.fetchMyTickets).mockResolvedValue(multiPageResponse);
 
-      renderWithRequester(mockRequesterA);
+      renderWithRequester();
 
       await waitFor(() => {
         expect(screen.getByText(/Page 1 of 2/i)).toBeInTheDocument();
@@ -383,7 +299,7 @@ describe("MyTickets Component (Issue #14)", () => {
           expect.objectContaining({
             page: 2,
           }),
-          mockRequesterA.id
+          "mock-jwt-token"
         );
       });
     });
@@ -395,7 +311,7 @@ describe("MyTickets Component (Issue #14)", () => {
         new Error("Unable to retrieve Tickets")
       );
 
-      renderWithRequester(mockRequesterA);
+      renderWithRequester();
 
       await waitFor(() => {
         expect(screen.getByText(/Unable to retrieve Tickets/i)).toBeInTheDocument();

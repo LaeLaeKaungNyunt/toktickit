@@ -3,6 +3,8 @@ import cors from "cors";
 import { getPrisma } from "./prisma.js";
 import referenceDataRouter from "./routes/v1/referenceData.js";
 import ticketsRouter from "./routes/v1/tickets.js";
+import authRouter from "./routes/v1/auth.js";
+import { staffRouter } from "./routes/v1/staff.js";
 
 // getPrisma() is your lazy database handle. Call it INSIDE a route when you
 // need the DB (Issue 4). It is intentionally unused until then.
@@ -54,7 +56,12 @@ app.get("/api/categories", async (_req: Request, res: Response) => {
   }
 });
 
-// Lab 2 API v1 Routes
+import adminRouter from "./routes/v1/admin.js";
+
+// Lab 3 API v1 Routes
+app.use("/api/v1/auth", authRouter);
+app.use("/api/v1/staff", staffRouter);
+app.use("/api/v1/admin", adminRouter);
 app.use("/api/v1", referenceDataRouter);
 app.use("/api/v1", ticketsRouter);
 

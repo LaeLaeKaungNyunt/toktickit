@@ -3,19 +3,26 @@ import request from "supertest";
 import { app } from "../../src/app.js";
 import { getPrisma } from "../../src/prisma.js";
 
+import jwt from "jsonwebtoken";
+
+const JWT_SECRET = process.env.JWT_SECRET || "dev-toktickit-jwt-secret-key";
+
 describe("Create Ticket Feature (POST /api/v1/tickets)", () => {
   let activeRequesterId: string;
+  let activeToken: string;
   let categoryId: number;
   let activeRelatedSystemId: string;
 
   beforeEach(async () => {
     const prisma = getPrisma();
-    const requester = await prisma.developmentRequester.upsert({
+    const requester = await prisma.user.upsert({
       where: { email: "create.ticket.test@university.edu" },
       update: { isActive: true },
       create: {
-        displayName: "Create Ticket Test Requester",
+        name: "Create Ticket Test Requester",
         email: "create.ticket.test@university.edu",
+        role: "Requester",
+        passwordHash: "hash",
         isActive: true,
       },
     });
@@ -29,6 +36,11 @@ describe("Create Ticket Feature (POST /api/v1/tickets)", () => {
     expect(system).not.toBeNull();
 
     activeRequesterId = requester.id;
+    activeToken = jwt.sign(
+      { userId: requester.id, role: "Requester", tokenVersion: requester.tokenVersion },
+      JWT_SECRET,
+      { expiresIn: "8h" }
+    );
     categoryId = category!.id;
     activeRelatedSystemId = system!.id;
   });
@@ -54,7 +66,7 @@ describe("Create Ticket Feature (POST /api/v1/tickets)", () => {
 
       const res = await request(app)
         .post("/api/v1/tickets")
-        .set("X-Dev-Requester-Id", activeRequesterId)
+        .set("Authorization", `Bearer ${activeToken}`)
         .send(payload);
 
       expect(res.status).toBe(201);
@@ -106,7 +118,7 @@ describe("Create Ticket Feature (POST /api/v1/tickets)", () => {
 
       const res = await request(app)
         .post("/api/v1/tickets")
-        .set("X-Dev-Requester-Id", activeRequesterId)
+        .set("Authorization", `Bearer ${activeToken}`)
         .send(payload);
 
       expect(res.status).toBe(201);
@@ -128,7 +140,7 @@ describe("Create Ticket Feature (POST /api/v1/tickets)", () => {
 
       const res = await request(app)
         .post("/api/v1/tickets")
-        .set("X-Dev-Requester-Id", activeRequesterId)
+        .set("Authorization", `Bearer ${activeToken}`)
         .send(payload);
 
       expect(res.status).toBe(201);
@@ -139,7 +151,7 @@ describe("Create Ticket Feature (POST /api/v1/tickets)", () => {
     it("rejects missing or invalid categoryId", async () => {
       const res = await request(app)
         .post("/api/v1/tickets")
-        .set("X-Dev-Requester-Id", activeRequesterId)
+        .set("Authorization", `Bearer ${activeToken}`)
         .send({
           categoryId: 999999,
           relatedSystemId: activeRelatedSystemId,
@@ -156,7 +168,7 @@ describe("Create Ticket Feature (POST /api/v1/tickets)", () => {
     it("rejects missing or inactive relatedSystemId", async () => {
       const res = await request(app)
         .post("/api/v1/tickets")
-        .set("X-Dev-Requester-Id", activeRequesterId)
+        .set("Authorization", `Bearer ${activeToken}`)
         .send({
           categoryId,
           relatedSystemId: "00000000-0000-0000-0000-000000000000",
@@ -173,7 +185,7 @@ describe("Create Ticket Feature (POST /api/v1/tickets)", () => {
     it("rejects summary that is whitespace-only, shorter than 5 chars, or longer than 120 chars", async () => {
       const shortRes = await request(app)
         .post("/api/v1/tickets")
-        .set("X-Dev-Requester-Id", activeRequesterId)
+        .set("Authorization", `Bearer ${activeToken}`)
         .send({
           categoryId,
           relatedSystemId: activeRelatedSystemId,
@@ -187,7 +199,7 @@ describe("Create Ticket Feature (POST /api/v1/tickets)", () => {
 
       const longRes = await request(app)
         .post("/api/v1/tickets")
-        .set("X-Dev-Requester-Id", activeRequesterId)
+        .set("Authorization", `Bearer ${activeToken}`)
         .send({
           categoryId,
           relatedSystemId: activeRelatedSystemId,
@@ -203,7 +215,7 @@ describe("Create Ticket Feature (POST /api/v1/tickets)", () => {
     it("rejects description that is whitespace-only, shorter than 10 chars, or longer than 5000 chars", async () => {
       const shortRes = await request(app)
         .post("/api/v1/tickets")
-        .set("X-Dev-Requester-Id", activeRequesterId)
+        .set("Authorization", `Bearer ${activeToken}`)
         .send({
           categoryId,
           relatedSystemId: activeRelatedSystemId,
@@ -217,7 +229,7 @@ describe("Create Ticket Feature (POST /api/v1/tickets)", () => {
 
       const longRes = await request(app)
         .post("/api/v1/tickets")
-        .set("X-Dev-Requester-Id", activeRequesterId)
+        .set("Authorization", `Bearer ${activeToken}`)
         .send({
           categoryId,
           relatedSystemId: activeRelatedSystemId,
@@ -233,7 +245,7 @@ describe("Create Ticket Feature (POST /api/v1/tickets)", () => {
     it("rejects missing or invalid requestedPriority", async () => {
       const res = await request(app)
         .post("/api/v1/tickets")
-        .set("X-Dev-Requester-Id", activeRequesterId)
+        .set("Authorization", `Bearer ${activeToken}`)
         .send({
           categoryId,
           relatedSystemId: activeRelatedSystemId,
@@ -248,7 +260,7 @@ describe("Create Ticket Feature (POST /api/v1/tickets)", () => {
   });
 
   describe("Requester Context Error Protection", () => {
-    it("returns safe 400 Bad Request when X-Dev-Requester-Id header is missing or invalid", async () => {
+    it("returns 401 Unauthorized when Authorization header is missing or invalid", async () => {
       const payload = {
         categoryId,
         relatedSystemId: activeRelatedSystemId,
@@ -261,16 +273,16 @@ describe("Create Ticket Feature (POST /api/v1/tickets)", () => {
         .post("/api/v1/tickets")
         .send(payload);
 
-      expect(resMissing.status).toBe(400);
-      expect(resMissing.body.error.code).toBe("INVALID_REQUESTER_CONTEXT");
+      expect(resMissing.status).toBe(401);
+      expect(resMissing.body.error).toBe("Missing or invalid authorization token");
 
       const resInvalid = await request(app)
         .post("/api/v1/tickets")
-        .set("X-Dev-Requester-Id", "not-a-valid-uuid")
+        .set("Authorization", "Bearer invalid-jwt-token")
         .send(payload);
 
-      expect(resInvalid.status).toBe(400);
-      expect(resInvalid.body.error.code).toBe("INVALID_REQUESTER_CONTEXT");
+      expect(resInvalid.status).toBe(401);
+      expect(resInvalid.body.error).toBe("Invalid or expired token");
     });
   });
 
@@ -288,7 +300,7 @@ describe("Create Ticket Feature (POST /api/v1/tickets)", () => {
       const requests = Array.from({ length: CONCURRENCY_COUNT }).map(() =>
         request(app)
           .post("/api/v1/tickets")
-          .set("X-Dev-Requester-Id", activeRequesterId)
+          .set("Authorization", `Bearer ${activeToken}`)
           .send(payload)
       );
 

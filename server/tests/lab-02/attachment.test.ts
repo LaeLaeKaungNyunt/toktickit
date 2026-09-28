@@ -8,10 +8,18 @@ import {
   MockStorageService,
 } from "../../src/services/storage.js";
 
+import jwt from "jsonwebtoken";
+
+import { allocateTicketNumber } from "../../src/utils/ticketNumber.js";
+
+const JWT_SECRET = process.env.JWT_SECRET || "dev-toktickit-jwt-secret-key";
+
 describe("Attachment Management API (Issue #15)", () => {
   let mockStorage: MockStorageService;
   let requesterAId: string;
   let requesterBId: string;
+  let tokenA: string;
+  let tokenB: string;
   let ticketAId: string;
   let ticketBId: string;
   let categoryId: number;
@@ -22,45 +30,35 @@ describe("Attachment Management API (Issue #15)", () => {
     setStorageService(mockStorage);
 
     const prisma = getPrisma();
-
-    const requesterA = await prisma.developmentRequester.upsert({
-      where: { email: "attachment.test.a@university.edu" },
-      update: { isActive: true },
-      create: {
-        displayName: "Attachment Test Requester A",
-        email: "attachment.test.a@university.edu",
-        isActive: true,
-      },
-    });
-
-    const requesterB = await prisma.developmentRequester.upsert({
-      where: { email: "attachment.test.b@university.edu" },
-      update: { isActive: true },
-      create: {
-        displayName: "Attachment Test Requester B",
-        email: "attachment.test.b@university.edu",
-        isActive: true,
-      },
-    });
-
-    const category = await prisma.category.findFirst();
-    const system = await prisma.relatedSystem.findFirst({
-      where: { isActive: true },
-    });
+    const requesterA = await prisma.user.findUnique({ where: { email: "alice.smith@university.edu" } });
+    const requesterB = await prisma.user.findUnique({ where: { email: "bob.jones@university.edu" } });
+    const category = await prisma.category.findFirst({ where: { name: "Account and Access" } });
+    const system = await prisma.relatedSystem.findFirst({ where: { name: "Student Portal" } });
 
     expect(requesterA).not.toBeNull();
     expect(requesterB).not.toBeNull();
     expect(category).not.toBeNull();
     expect(system).not.toBeNull();
 
-    requesterAId = requesterA.id;
-    requesterBId = requesterB.id;
+    requesterAId = requesterA!.id;
+    requesterBId = requesterB!.id;
+    tokenA = jwt.sign(
+      { userId: requesterAId, role: requesterA!.role, tokenVersion: requesterA!.tokenVersion },
+      JWT_SECRET,
+      { expiresIn: "8h" }
+    );
+    tokenB = jwt.sign(
+      { userId: requesterBId, role: requesterB!.role, tokenVersion: requesterB!.tokenVersion },
+      JWT_SECRET,
+      { expiresIn: "8h" }
+    );
     categoryId = category!.id;
     activeRelatedSystemId = system!.id;
 
+    const numA = await allocateTicketNumber(prisma);
     const ticketA = await prisma.ticket.create({
       data: {
-        ticketNumber: `TKT-2026-${Math.floor(10000 + Math.random() * 90000)}`,
+        ticketNumber: numA,
         requesterId: requesterAId,
         categoryId,
         relatedSystemId: activeRelatedSystemId,
@@ -71,9 +69,10 @@ describe("Attachment Management API (Issue #15)", () => {
       },
     });
 
+    const numB = await allocateTicketNumber(prisma);
     const ticketB = await prisma.ticket.create({
       data: {
-        ticketNumber: `TKT-2026-${Math.floor(10000 + Math.random() * 90000)}`,
+        ticketNumber: numB,
         requesterId: requesterBId,
         categoryId,
         relatedSystemId: activeRelatedSystemId,
@@ -102,7 +101,7 @@ describe("Attachment Management API (Issue #15)", () => {
     ])("uploads permitted file type %s successfully with 201 Created and ATTACHMENT_ADDED event", async ({ filename, mimeType, buffer }) => {
       const res = await request(app)
         .post(`/api/v1/tickets/${ticketAId}/attachments`)
-        .set("X-Dev-Requester-Id", requesterAId)
+        .set("Authorization", `Bearer ${tokenA}`)
         .attach("file", buffer, { filename, contentType: mimeType });
 
       expect(res.status).toBe(201);
@@ -148,7 +147,7 @@ describe("Attachment Management API (Issue #15)", () => {
 
       const res = await request(app)
         .post(`/api/v1/tickets/${ticketAId}/attachments`)
-        .set("X-Dev-Requester-Id", requesterAId)
+        .set("Authorization", `Bearer ${tokenA}`)
         .attach("file", sampleBuffer, { filename: "fail-cleanup.png", contentType: "image/png" });
 
       expect(res.status).toBe(500);
@@ -165,7 +164,7 @@ describe("Attachment Management API (Issue #15)", () => {
     it("rejects unsupported MIME type with 415 Unsupported Media Type", async () => {
       const res = await request(app)
         .post(`/api/v1/tickets/${ticketAId}/attachments`)
-        .set("X-Dev-Requester-Id", requesterAId)
+        .set("Authorization", `Bearer ${tokenA}`)
         .attach("file", Buffer.from("plain text content"), {
           filename: "script.sh",
           contentType: "text/plain",
@@ -181,7 +180,7 @@ describe("Attachment Management API (Issue #15)", () => {
 
       const res = await request(app)
         .post(`/api/v1/tickets/${ticketAId}/attachments`)
-        .set("X-Dev-Requester-Id", requesterAId)
+        .set("Authorization", `Bearer ${tokenA}`)
         .attach("file", largeBuffer, {
           filename: "huge-file.pdf",
           contentType: "application/pdf",
@@ -209,7 +208,7 @@ describe("Attachment Management API (Issue #15)", () => {
 
       const res = await request(app)
         .post(`/api/v1/tickets/${ticketAId}/attachments`)
-        .set("X-Dev-Requester-Id", requesterAId)
+        .set("Authorization", `Bearer ${tokenA}`)
         .attach("file", Buffer.from("6th-file-content"), {
           filename: "overflow.png",
           contentType: "image/png",
@@ -241,7 +240,7 @@ describe("Attachment Management API (Issue #15)", () => {
       // Get metadata
       const metaRes = await request(app)
         .get(`/api/v1/tickets/${ticketAId}/attachments/${attachment.id}`)
-        .set("X-Dev-Requester-Id", requesterAId);
+        .set("Authorization", `Bearer ${tokenA}`);
 
       expect(metaRes.status).toBe(200);
       expect(metaRes.body.id).toBe(attachment.id);
@@ -250,7 +249,7 @@ describe("Attachment Management API (Issue #15)", () => {
       // Binary download
       const downloadRes = await request(app)
         .get(`/api/v1/tickets/${ticketAId}/attachments/${attachment.id}/download`)
-        .set("X-Dev-Requester-Id", requesterAId);
+        .set("Authorization", `Bearer ${tokenA}`);
 
       expect(downloadRes.status).toBe(200);
       expect(downloadRes.header["content-type"]).toContain("image/png");
@@ -274,7 +273,7 @@ describe("Attachment Management API (Issue #15)", () => {
 
       const resEmpty = await request(app)
         .delete(`/api/v1/tickets/${ticketAId}/attachments/${attachment.id}`)
-        .set("X-Dev-Requester-Id", requesterAId)
+        .set("Authorization", `Bearer ${tokenA}`)
         .send({ reason: "   " });
 
       expect(resEmpty.status).toBe(400);
@@ -298,7 +297,7 @@ describe("Attachment Management API (Issue #15)", () => {
 
       const res = await request(app)
         .delete(`/api/v1/tickets/${ticketAId}/attachments/${attachment.id}`)
-        .set("X-Dev-Requester-Id", requesterAId)
+        .set("Authorization", `Bearer ${tokenA}`)
         .send({ reason: "  Uploaded wrong file version  " });
 
       expect(res.status).toBe(200);
@@ -343,19 +342,19 @@ describe("Attachment Management API (Issue #15)", () => {
       // Metadata fetch
       const metaRes = await request(app)
         .get(`/api/v1/tickets/${ticketAId}/attachments/${attachment.id}`)
-        .set("X-Dev-Requester-Id", requesterAId);
+        .set("Authorization", `Bearer ${tokenA}`);
       expect(metaRes.status).toBe(404);
 
       // Binary download
       const downloadRes = await request(app)
         .get(`/api/v1/tickets/${ticketAId}/attachments/${attachment.id}/download`)
-        .set("X-Dev-Requester-Id", requesterAId);
+        .set("Authorization", `Bearer ${tokenA}`);
       expect(downloadRes.status).toBe(404);
 
       // Second soft-removal
       const removeRes = await request(app)
         .delete(`/api/v1/tickets/${ticketAId}/attachments/${attachment.id}`)
-        .set("X-Dev-Requester-Id", requesterAId)
+        .set("Authorization", `Bearer ${tokenA}`)
         .send({ reason: "Attempting duplicate removal" });
       expect(removeRes.status).toBe(404);
     });
@@ -382,7 +381,7 @@ describe("Attachment Management API (Issue #15)", () => {
 
       const res = await request(app)
         .delete(`/api/v1/tickets/${ticketAId}/attachments/${attachment.id}`)
-        .set("X-Dev-Requester-Id", requesterAId)
+        .set("Authorization", `Bearer ${tokenA}`)
         .send({ reason: "Valid reason text" });
 
       expect(res.status).toBe(500);
@@ -417,7 +416,7 @@ describe("Attachment Management API (Issue #15)", () => {
 
       const failRes = await request(app)
         .delete(`/api/v1/tickets/${ticketAId}/attachments/${attachment.id}`)
-        .set("X-Dev-Requester-Id", requesterAId)
+        .set("Authorization", `Bearer ${tokenA}`)
         .send({ reason: "Initial removal attempt" });
 
       expect(failRes.status).toBe(500);
@@ -442,7 +441,7 @@ describe("Attachment Management API (Issue #15)", () => {
       // 2. Subsequent retry (storage deletion is idempotent when binary is already absent)
       const retryRes = await request(app)
         .delete(`/api/v1/tickets/${ticketAId}/attachments/${attachment.id}`)
-        .set("X-Dev-Requester-Id", requesterAId)
+        .set("Authorization", `Bearer ${tokenA}`)
         .send({ reason: "Retry removal after DB failure" });
 
       expect(retryRes.status).toBe(200);
@@ -484,19 +483,19 @@ describe("Attachment Management API (Issue #15)", () => {
       // Metadata fetch by Requester B
       const metaRes = await request(app)
         .get(`/api/v1/tickets/${ticketAId}/attachments/${attachmentA.id}`)
-        .set("X-Dev-Requester-Id", requesterBId);
+        .set("Authorization", `Bearer ${tokenB}`);
       expect(metaRes.status).toBe(404);
 
       // Download by Requester B
       const downloadRes = await request(app)
         .get(`/api/v1/tickets/${ticketAId}/attachments/${attachmentA.id}/download`)
-        .set("X-Dev-Requester-Id", requesterBId);
+        .set("Authorization", `Bearer ${tokenB}`);
       expect(downloadRes.status).toBe(404);
 
       // Soft removal by Requester B
       const removeRes = await request(app)
         .delete(`/api/v1/tickets/${ticketAId}/attachments/${attachmentA.id}`)
-        .set("X-Dev-Requester-Id", requesterBId)
+        .set("Authorization", `Bearer ${tokenB}`)
         .send({ reason: "Malicious removal attempt" });
       expect(removeRes.status).toBe(404);
     });
