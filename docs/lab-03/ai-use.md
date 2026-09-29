@@ -2,7 +2,7 @@
 
 ## AI Tools Used
 
-- **ChatGPT** — used as the specification and review assistant to interpret the Lab 3 requirements, define the engineering contract, review implementation decisions, and check work against the acceptance criteria.
+- **ChatGPT (GPT-5.6 Sol)** — used as the specification and review assistant to interpret the Lab 3 requirements, define the engineering contract, review implementation decisions, and check work against the acceptance criteria.
 - **Antigravity Coding Agent** — used to implement the approved specification, tests, migrations, UI, API behavior, and E2E verification.
 
 ## Selected Key Prompts
