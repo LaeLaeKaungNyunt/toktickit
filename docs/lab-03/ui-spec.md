@@ -588,14 +588,14 @@ This checklist shall be completed against the final integrated Lab 3 application
 
 Desktop, tablet, and mobile verification shall cover:
 
-- [ ] Login
-- [ ] Change Password
-- [ ] Requester Create Ticket
-- [ ] Requester My Tickets
-- [ ] Requester Ticket Detail
-- [ ] IT Staff Ticket Queue
-- [ ] IT Staff Ticket Detail
-- [ ] Administrator User Management
+- [x] Login
+- [x] Change Password
+- [x] Requester Create Ticket
+- [x] Requester My Tickets
+- [x] Requester Ticket Detail
+- [x] IT Staff Ticket Queue
+- [x] IT Staff Ticket Detail
+- [x] Administrator User Management
 
 ### Design Consistency
 
