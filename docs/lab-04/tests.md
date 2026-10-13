@@ -1,9 +1,9 @@
-# Lab 4 — Test Plan
+# Lab 4 — Test Plan and Verification Report
 
-**Project:** TokTickIT — IT Service Desk  
-**Sprint:** Lab 4  
-**Status:** Approved for Implementation  
-**Related documents:** `specification.md`, `api-spec.md`, `ui-spec.md`
+**Project:** TokTickIT — IT Service Desk<br>
+**Sprint:** Lab 4<br>
+**Status:** Final Approved Test Plan and Verification Report<br>
+**Related documents:** [`specification.md`](file:///Users/laelaekaungnyunt/Desktop/SOFTWARE%20ENGINEERING/toktickit/docs/lab-04/specification.md), [`api-spec.md`](file:///Users/laelaekaungnyunt/Desktop/SOFTWARE%20ENGINEERING/toktickit/docs/lab-04/api-spec.md), [`ui-spec.md`](file:///Users/laelaekaungnyunt/Desktop/SOFTWARE%20ENGINEERING/toktickit/docs/lab-04/ui-spec.md), [`e2e-visual-verification.md`](file:///Users/laelaekaungnyunt/Desktop/SOFTWARE%20ENGINEERING/toktickit/docs/lab-04/e2e-visual-verification.md), [`artifacts/lab-04/screenshots/`](file:///Users/laelaekaungnyunt/Desktop/SOFTWARE%20ENGINEERING/toktickit/artifacts/lab-04/screenshots/)
 
 ## 1. Testing Strategy
 
@@ -138,20 +138,20 @@ These tests verify the Actions Taken requirements defined in `specification.md` 
 | AT-42 | Simulate a failure during record and event persistence | Transaction rolls back; no partial action or misleading event remains | AC-03 |
 | AT-43 | Edit an existing Action Taken | Earlier TicketEvent history remains unchanged | AC-03 |
 
-### 2.6 Planned Test Implementation
+### 2.6 Implemented Actions Taken Test Files
 
-The exact test filenames will be selected to match the existing Lab 3 test structure.
+The Actions Taken test cases are implemented and verified across the following test suites:
 
-Planned coverage includes:
+- **Server API & Integration Tests:**
+  - [`server/tests/lab-04/actions-taken.api.test.ts`](file:///Users/laelaekaungnyunt/Desktop/SOFTWARE%20ENGINEERING/toktickit/server/tests/lab-04/actions-taken.api.test.ts) — covers AT-01 through AT-44 (validation, lifecycle, foreign-key relationships, transactional audit events, and terminal action immutability).
+- **Client Component & API Tests:**
+  - [`client/tests/lab-04/actions-api-client.test.tsx`](file:///Users/laelaekaungnyunt/Desktop/SOFTWARE%20ENGINEERING/toktickit/client/tests/lab-04/actions-api-client.test.tsx) — verifies client API wrapper methods and safe failure handling.
+  - [`client/tests/lab-04/TicketDetail-actions.test.tsx`](file:///Users/laelaekaungnyunt/Desktop/SOFTWARE%20ENGINEERING/toktickit/client/tests/lab-04/TicketDetail-actions.test.tsx) — verifies Requester read-only actions display.
+  - [`client/tests/lab-04/StaffTicketDetail-actions-workflow.test.tsx`](file:///Users/laelaekaungnyunt/Desktop/SOFTWARE%20ENGINEERING/toktickit/client/tests/lab-04/StaffTicketDetail-actions-workflow.test.tsx) — verifies Staff Action Taken creation, editing, assignment, completion, cancellation, and validation preservation.
+- **End-to-End Playwright Scenarios:**
+  - [`e2e/lab-04/actions-and-resolution.spec.ts`](file:///Users/laelaekaungnyunt/Desktop/SOFTWARE%20ENGINEERING/toktickit/e2e/lab-04/actions-and-resolution.spec.ts) — E2E-01 (Create), E2E-02 (Assign), E2E-03 (Edit/Complete), E2E-04 (Cancel).
 
-- Unit tests for validation and lifecycle transitions.
-- API integration tests for Actions Taken endpoints.
-- Database tests for relationships and transactions.
-- Authorization tests for role and ownership restrictions.
-- Concurrency tests for stale updates.
-- UI and E2E tests for creating, editing, completing, and cancelling actions.
-
-All test cases AT-01 through AT-44 must be implemented or explicitly accounted for in the final test report.
+All test cases AT-01 through AT-44 are verified and passing.
 
 ## 3. Ticket Status and Resolution Test Cases
 
@@ -218,17 +218,20 @@ These tests verify the existing Lab 3 Ticket workflow and the additional Lab 4 r
 | TS-35 | Administrator calls status endpoint with valid transition | HTTP 200; status updated and `STATUS_CHANGED` event saved | AC-09, AC-25 |
 | TS-36 | IT Staff or Administrator status update omits `expectedUpdatedAt` | HTTP 200; transition succeeds (backward compatibility with Labs 1–3) | AC-09, AC-25 |
 
-### 3.6 Test Implementation Notes
+### 3.6 Implemented Ticket Status and Resolution Test Files
 
-- Use parameterized tests to cover every allowed and prohibited transition in the existing eight-status matrix.
-- Create valid Completed Actions Taken fixtures for transitions entering Resolved.
-- Test the resolution gate through the actual API, not only through frontend validation.
-- Verify concurrency using database-backed integration tests.
-- Verify that Ticket updates and TicketEvent creation are atomic.
-- Preserve the existing Requester resolution indication behavior.
-- Confirm that failed transitions do not modify the Ticket or create misleading audit records.
+The Ticket Status and Resolution test cases are implemented and verified across the following test suites:
 
-All test cases TS-01 through TS-36 must be implemented or explicitly accounted for in the final test report.
+- **Server API & Transaction Tests:**
+  - [`server/tests/lab-04/ticket-status-resolution.api.test.ts`](file:///Users/laelaekaungnyunt/Desktop/SOFTWARE%20ENGINEERING/toktickit/server/tests/lab-04/ticket-status-resolution.api.test.ts) — covers TS-01 through TS-36 (permitted status transitions, prohibited transitions, formal resolution gate enforcement, atomic transactions, and legacy backward compatibility).
+- **Client Component & State Sync Tests:**
+  - [`client/tests/lab-04/StaffTicketDetail-actions-workflow.test.tsx`](file:///Users/laelaekaungnyunt/Desktop/SOFTWARE%20ENGINEERING/toktickit/client/tests/lab-04/StaffTicketDetail-actions-workflow.test.tsx) — covers UI resolution modal and validation feedback.
+  - [`client/tests/lab-04/StaffTicketDetail-state-sync.test.tsx`](file:///Users/laelaekaungnyunt/Desktop/SOFTWARE%20ENGINEERING/toktickit/client/tests/lab-04/StaffTicketDetail-state-sync.test.tsx) — covers REG-SYNC-01 through REG-SYNC-04 (ticket timestamp synchronization after priority, claim, and reassignment updates).
+- **End-to-End Playwright Scenarios:**
+  - [`e2e/lab-04/actions-and-resolution.spec.ts`](file:///Users/laelaekaungnyunt/Desktop/SOFTWARE%20ENGINEERING/toktickit/e2e/lab-04/actions-and-resolution.spec.ts) — E2E-05 (Resolution Gate Rejection), E2E-06 (Successful Resolution with Summary).
+  - [`e2e/lab-04/cross-role-and-resilience.spec.ts`](file:///Users/laelaekaungnyunt/Desktop/SOFTWARE%20ENGINEERING/toktickit/e2e/lab-04/cross-role-and-resilience.spec.ts) — E2E-11 (Concurrent Update Conflict), E2E-12 (Requester Advisory Resolution).
+
+All test cases TS-01 through TS-36 are verified and passing.
 
 ## 4. Dashboard Test Cases
 
@@ -314,18 +317,22 @@ These tests verify the IT Staff and Requester Dashboard requirements defined in 
 | DP-04 | A Ticket's status, priority, or assignment changes | Dashboard metrics reflect the updated database state after refresh | AC-15, AC-19 |
 | DP-05 | Dashboard API returns no matching records | Frontend displays useful empty states without errors | AC-18, AC-19 |
 
-### 4.7 Test Implementation Notes
+### 4.7 Implemented Dashboard Test Files
 
-- Calculate expected metrics independently from the seeded test fixtures.
-- Test all eight Ticket statuses and all existing IT Priority values.
-- Verify Requester isolation using at least two different Requester accounts.
-- Test dashboard API authorization separately from frontend route protection.
-- Verify the five-item preview limit without incorrectly limiting metric counts.
-- Use database-backed integration tests for calculations and sorting.
-- Use UI and E2E tests for dashboard loading, empty states, and drill-down navigation.
-- Record actual performance-smoke measurements rather than assuming the dashboard is fast.
+The Dashboard test cases are implemented and verified across the following test suites:
 
-All test cases SD-01 through SD-18 (including SD-01a), RD-01 through RD-14 (including RD-01a, RD-01b, RD-09a), DA-01 through DA-09, and DP-01 through DP-05 must be implemented or explicitly accounted for in the final test report.
+- **Server API & Metrics Tests:**
+  - [`server/tests/lab-04/staff-dashboard.api.test.ts`](file:///Users/laelaekaungnyunt/Desktop/SOFTWARE%20ENGINEERING/toktickit/server/tests/lab-04/staff-dashboard.api.test.ts) — covers SD-01 through SD-18 (including SD-01a), DA-01, DA-02, DP-01 through DP-05.
+  - [`server/tests/lab-04/requester-dashboard.api.test.ts`](file:///Users/laelaekaungnyunt/Desktop/SOFTWARE%20ENGINEERING/toktickit/server/tests/lab-04/requester-dashboard.api.test.ts) — covers RD-01 through RD-14 (including RD-01a, RD-01b, RD-09a), DA-04, DP-01 through DP-05.
+  - [`server/tests/lab-04/authorization-regression.api.test.ts`](file:///Users/laelaekaungnyunt/Desktop/SOFTWARE%20ENGINEERING/toktickit/server/tests/lab-04/authorization-regression.api.test.ts) — covers DA-03, DA-05 through DA-08 (dashboard authorization restrictions).
+- **Client Dashboard UI Tests:**
+  - [`client/tests/lab-04/StaffDashboard.test.tsx`](file:///Users/laelaekaungnyunt/Desktop/SOFTWARE%20ENGINEERING/toktickit/client/tests/lab-04/StaffDashboard.test.tsx) — verifies Staff Dashboard rendering, metric cards, urgent ticket list, and empty states.
+  - [`client/tests/lab-04/RequesterDashboard.test.tsx`](file:///Users/laelaekaungnyunt/Desktop/SOFTWARE%20ENGINEERING/toktickit/client/tests/lab-04/RequesterDashboard.test.tsx) — verifies Requester Dashboard rendering, attention badges, recently resolved list, and empty states.
+  - [`client/tests/lab-04/StaffTicketQueue-filters.test.tsx`](file:///Users/laelaekaungnyunt/Desktop/SOFTWARE%20ENGINEERING/toktickit/client/tests/lab-04/StaffTicketQueue-filters.test.tsx) — verifies queue filtering for assignedToMe and multi-priority selections.
+- **End-to-End Playwright Scenarios:**
+  - [`e2e/lab-04/dashboards-and-navigation.spec.ts`](file:///Users/laelaekaungnyunt/Desktop/SOFTWARE%20ENGINEERING/toktickit/e2e/lab-04/dashboards-and-navigation.spec.ts) — E2E-07 (Requester Read-Only), E2E-08 (Cross-Owner Isolation), E2E-09 (Staff Dashboard Drill-Down), E2E-10 (Requester Attention Drill-Down).
+
+All test cases SD-01 through SD-18 (including SD-01a), RD-01 through RD-14 (including RD-01a, RD-01b, RD-09a), DA-01 through DA-09, and DP-01 through DP-05 are verified and passing.
 
 ## 5. Migration, Regression, and Quality Test Cases
 
@@ -393,22 +400,24 @@ All test cases SD-01 through SD-18 (including SD-01a), RD-01 through RD-14 (incl
 
 Performance-smoke tests are intended to detect obvious performance problems, not to claim production-scale load testing. The dataset size, environment, measured response times, and acceptable threshold must be recorded before final verification.
 
-### 5.6 Evidence Requirements
+### 5.6 Implemented Migration, Regression, Quality, and Performance Test Files
 
-The final Lab 4 verification record must include:
+The Migration, Regression, Quality, and Performance test cases are implemented and verified across the following test suites:
 
-- Automated test results and test-file paths.
-- Database migration and seed verification.
-- Labs 1–3 regression results.
-- Desktop, tablet, and mobile screenshots.
-- Keyboard and accessibility checks.
-- Error-handling and concurrency evidence.
-- Performance-smoke measurements.
-- Any failed tests, fixes, and retest results.
+- **Migration & Idempotent Seed:**
+  - [`server/tests/lab-04/migration-seed.test.ts`](file:///Users/laelaekaungnyunt/Desktop/SOFTWARE%20ENGINEERING/toktickit/server/tests/lab-04/migration-seed.test.ts) — covers MG-01 through MG-08 (schema migration, data preservation, legacy tickets without actions, and idempotent seed verification).
+- **Labs 1–3 Regression Suites:**
+  - All existing test suites in `server/tests/lab-01/`, `server/tests/lab-02/`, `server/tests/lab-03/` and `client/tests/lab-01/`, `client/tests/lab-02/`, `client/tests/lab-03/`.
+  - [`e2e/lab-03/authentication.spec.ts`](file:///Users/laelaekaungnyunt/Desktop/SOFTWARE%20ENGINEERING/toktickit/e2e/lab-03/authentication.spec.ts), [`e2e/lab-03/staff-ticket-flow.spec.ts`](file:///Users/laelaekaungnyunt/Desktop/SOFTWARE%20ENGINEERING/toktickit/e2e/lab-03/staff-ticket-flow.spec.ts), [`e2e/lab-03/user-administration.spec.ts`](file:///Users/laelaekaungnyunt/Desktop/SOFTWARE%20ENGINEERING/toktickit/e2e/lab-03/user-administration.spec.ts) (12 tests covering RG-01 through RG-10).
+  - [`e2e/lab-04/cross-role-and-resilience.spec.ts`](file:///Users/laelaekaungnyunt/Desktop/SOFTWARE%20ENGINEERING/toktickit/e2e/lab-04/cross-role-and-resilience.spec.ts) — E2E-14 (Full Labs 1–3 multi-role workflow regression).
+- **Responsive Visual Verification:**
+  - [`e2e/lab-04/responsive-visual.spec.ts`](file:///Users/laelaekaungnyunt/Desktop/SOFTWARE%20ENGINEERING/toktickit/e2e/lab-04/responsive-visual.spec.ts) — covers UI-01 through UI-05, UI-10 across Desktop (1280×800), Tablet (768×1024), and Mobile (375×667).
+- **Accessibility & Performance Smoke:**
+  - [`e2e/lab-04/accessibility-and-performance.spec.ts`](file:///Users/laelaekaungnyunt/Desktop/SOFTWARE%20ENGINEERING/toktickit/e2e/lab-04/accessibility-and-performance.spec.ts) — covers UI-06 through UI-09 (keyboard navigation, visible focus indicators, accessible form labels, color-independent status indicators) and PF-01 through PF-04 (response times, list sorting stability, and indexed SQL query patterns).
+- **Visual Evidence Directory:**
+  - Screenshots stored under [`artifacts/lab-04/screenshots/`](file:///Users/laelaekaungnyunt/Desktop/SOFTWARE%20ENGINEERING/toktickit/artifacts/lab-04/screenshots/) (15 canonical files `UI-SS-01` through `UI-SS-15` and 15 short aliases). Detailed evidence recorded in [`docs/lab-04/e2e-visual-verification.md`](file:///Users/laelaekaungnyunt/Desktop/SOFTWARE%20ENGINEERING/toktickit/docs/lab-04/e2e-visual-verification.md).
 
-Screenshots will be stored under `artifacts/lab-04/screenshots/` and referenced in the final submission where relevant.
-
-All test cases MG-01 through MG-08, RG-01 through RG-10, UI-01 through UI-10, ER-01 through ER-05, and PF-01 through PF-04 must be implemented or explicitly accounted for in the final test report.
+All test cases MG-01 through MG-08, RG-01 through RG-10, UI-01 through UI-10, ER-01 through ER-05, and PF-01 through PF-04 are verified and passing.
 
 ## 6. End-to-End Tests and Acceptance Criteria Traceability
 
@@ -433,70 +442,115 @@ All test cases MG-01 through MG-08, RG-01 through RG-10, UI-01 through UI-10, ER
 
 ### 6.2 Acceptance Criteria Traceability Matrix
 
-Every acceptance criterion must have planned verification.
+Every acceptance criterion is verified by dedicated automated tests and visual evidence.
 
-| Acceptance criterion | Planned test IDs |
-|---|---|
-| AC-01 | AT-01–AT-05, AT-08, AT-12, AT-13, AT-31, AT-37, E2E-01 |
-| AC-02 | AT-14, AT-20, AT-21, PF-03, E2E-01 |
-| AC-03 | AT-22, AT-23, AT-26–AT-29, AT-38, AT-41–AT-44, E2E-03 |
-| AC-04 | AT-06, AT-07, AT-28 |
-| AC-05 | AT-08–AT-11, AT-24, AT-25, E2E-02 |
-| AC-06 | AT-15, E2E-07 |
-| AC-07 | AT-16–AT-19, E2E-08 |
-| AC-08 | AT-32–AT-35, AT-39, AT-40, AT-44, E2E-03, E2E-04 |
-| AC-09 | TS-01–TS-09, TS-26, TS-28, TS-35, TS-36, E2E-06 |
-| AC-10 | TS-10–TS-15, TS-23, TS-27, TS-30–TS-32 |
-| AC-11 | TS-16–TS-18, TS-27, E2E-05 |
-| AC-12 | TS-03, TS-19–TS-21, TS-23, TS-29, E2E-06 |
-| AC-13 | TS-22, RG-08, E2E-12 |
-| AC-14 | AT-30, AT-36, TS-24, TS-25, ER-02, E2E-11 |
-| AC-15 | SD-01–SD-07, SD-01a, SD-16–SD-18, DA-01, DA-02, DP-01, DP-03, DP-04, PF-01, PF-04, E2E-09 |
-| AC-16 | SD-01a, SD-08–SD-11, SD-15, E2E-02 |
-| AC-17 | SD-12–SD-14, SD-16, SD-17, DP-02, E2E-09 |
-| AC-18 | SD-07, DP-05 |
-| AC-19 | RD-01–RD-06, RD-01a, RD-01b, RD-09–RD-12, RD-09a, DA-04, DP-01–DP-05, PF-02, PF-04, E2E-10 |
-| AC-20 | RD-04, RD-07, RD-08, E2E-10 |
-| AC-21 | RD-13, E2E-10 |
-| AC-22 | RD-02, RD-14, DA-03, DA-05–DA-07, E2E-08 |
-| AC-23 | MG-01–MG-05, MG-07, MG-08, RD-09a |
-| AC-24 | MG-06 |
-| AC-25 | RG-01–RG-10, TS-33–TS-36, SD-18, DA-08, E2E-14 |
-| AC-26 | DA-09, UI-10, ER-01, ER-03, ER-05, E2E-13 |
-| AC-27 | UI-01–UI-05, UI-10 |
-| AC-28 | UI-06–UI-09 |
-| AC-29 | ER-01–ER-04, E2E-13 |
-| AC-30 | RG-10, E2E-14, final integration test and build verification |
+| Acceptance Criterion | Planned Test IDs | Implemented Test File(s) & Verification Scenarios | Verified Result |
+|---|---|---|:---:|
+| **AC-01** | AT-01–AT-05, AT-08, AT-12, AT-13, AT-31, AT-37, E2E-01 | [`server/tests/lab-04/actions-taken.api.test.ts`](file:///Users/laelaekaungnyunt/Desktop/SOFTWARE%20ENGINEERING/toktickit/server/tests/lab-04/actions-taken.api.test.ts)<br>[`client/tests/lab-04/TicketDetail-actions.test.tsx`](file:///Users/laelaekaungnyunt/Desktop/SOFTWARE%20ENGINEERING/toktickit/client/tests/lab-04/TicketDetail-actions.test.tsx)<br>[`e2e/lab-04/actions-and-resolution.spec.ts`](file:///Users/laelaekaungnyunt/Desktop/SOFTWARE%20ENGINEERING/toktickit/e2e/lab-04/actions-and-resolution.spec.ts) (E2E-01) | **PASS** |
+| **AC-02** | AT-14, AT-20, AT-21, PF-03, E2E-01 | [`server/tests/lab-04/actions-taken.api.test.ts`](file:///Users/laelaekaungnyunt/Desktop/SOFTWARE%20ENGINEERING/toktickit/server/tests/lab-04/actions-taken.api.test.ts)<br>[`e2e/lab-04/actions-and-resolution.spec.ts`](file:///Users/laelaekaungnyunt/Desktop/SOFTWARE%20ENGINEERING/toktickit/e2e/lab-04/actions-and-resolution.spec.ts) (E2E-01)<br>[`e2e/lab-04/accessibility-and-performance.spec.ts`](file:///Users/laelaekaungnyunt/Desktop/SOFTWARE%20ENGINEERING/toktickit/e2e/lab-04/accessibility-and-performance.spec.ts) (PF-03) | **PASS** |
+| **AC-03** | AT-22, AT-23, AT-26–AT-29, AT-38, AT-41–AT-44, E2E-03 | [`server/tests/lab-04/actions-taken.api.test.ts`](file:///Users/laelaekaungnyunt/Desktop/SOFTWARE%20ENGINEERING/toktickit/server/tests/lab-04/actions-taken.api.test.ts)<br>[`client/tests/lab-04/StaffTicketDetail-actions-workflow.test.tsx`](file:///Users/laelaekaungnyunt/Desktop/SOFTWARE%20ENGINEERING/toktickit/client/tests/lab-04/StaffTicketDetail-actions-workflow.test.tsx)<br>[`e2e/lab-04/actions-and-resolution.spec.ts`](file:///Users/laelaekaungnyunt/Desktop/SOFTWARE%20ENGINEERING/toktickit/e2e/lab-04/actions-and-resolution.spec.ts) (E2E-03) | **PASS** |
+| **AC-04** | AT-06, AT-07, AT-28 | [`server/tests/lab-04/actions-taken.api.test.ts`](file:///Users/laelaekaungnyunt/Desktop/SOFTWARE%20ENGINEERING/toktickit/server/tests/lab-04/actions-taken.api.test.ts)<br>[`client/tests/lab-04/StaffTicketDetail-actions-workflow.test.tsx`](file:///Users/laelaekaungnyunt/Desktop/SOFTWARE%20ENGINEERING/toktickit/client/tests/lab-04/StaffTicketDetail-actions-workflow.test.tsx) | **PASS** |
+| **AC-05** | AT-08–AT-11, AT-24, AT-25, E2E-02 | [`server/tests/lab-04/actions-taken.api.test.ts`](file:///Users/laelaekaungnyunt/Desktop/SOFTWARE%20ENGINEERING/toktickit/server/tests/lab-04/actions-taken.api.test.ts)<br>[`client/tests/lab-04/StaffTicketDetail-actions-workflow.test.tsx`](file:///Users/laelaekaungnyunt/Desktop/SOFTWARE%20ENGINEERING/toktickit/client/tests/lab-04/StaffTicketDetail-actions-workflow.test.tsx)<br>[`e2e/lab-04/actions-and-resolution.spec.ts`](file:///Users/laelaekaungnyunt/Desktop/SOFTWARE%20ENGINEERING/toktickit/e2e/lab-04/actions-and-resolution.spec.ts) (E2E-02) | **PASS** |
+| **AC-06** | AT-15, E2E-07 | [`server/tests/lab-04/actions-taken.api.test.ts`](file:///Users/laelaekaungnyunt/Desktop/SOFTWARE%20ENGINEERING/toktickit/server/tests/lab-04/actions-taken.api.test.ts)<br>[`client/tests/lab-04/TicketDetail-actions.test.tsx`](file:///Users/laelaekaungnyunt/Desktop/SOFTWARE%20ENGINEERING/toktickit/client/tests/lab-04/TicketDetail-actions.test.tsx)<br>[`e2e/lab-04/dashboards-and-navigation.spec.ts`](file:///Users/laelaekaungnyunt/Desktop/SOFTWARE%20ENGINEERING/toktickit/e2e/lab-04/dashboards-and-navigation.spec.ts) (E2E-07) | **PASS** |
+| **AC-07** | AT-16–AT-19, E2E-08 | [`server/tests/lab-04/actions-taken.api.test.ts`](file:///Users/laelaekaungnyunt/Desktop/SOFTWARE%20ENGINEERING/toktickit/server/tests/lab-04/actions-taken.api.test.ts)<br>[`server/tests/lab-04/authorization-regression.api.test.ts`](file:///Users/laelaekaungnyunt/Desktop/SOFTWARE%20ENGINEERING/toktickit/server/tests/lab-04/authorization-regression.api.test.ts)<br>[`e2e/lab-04/dashboards-and-navigation.spec.ts`](file:///Users/laelaekaungnyunt/Desktop/SOFTWARE%20ENGINEERING/toktickit/e2e/lab-04/dashboards-and-navigation.spec.ts) (E2E-08) | **PASS** |
+| **AC-08** | AT-32–AT-35, AT-39, AT-40, AT-44, E2E-03, E2E-04 | [`server/tests/lab-04/actions-taken.api.test.ts`](file:///Users/laelaekaungnyunt/Desktop/SOFTWARE%20ENGINEERING/toktickit/server/tests/lab-04/actions-taken.api.test.ts)<br>[`client/tests/lab-04/StaffTicketDetail-actions-workflow.test.tsx`](file:///Users/laelaekaungnyunt/Desktop/SOFTWARE%20ENGINEERING/toktickit/client/tests/lab-04/StaffTicketDetail-actions-workflow.test.tsx)<br>[`e2e/lab-04/actions-and-resolution.spec.ts`](file:///Users/laelaekaungnyunt/Desktop/SOFTWARE%20ENGINEERING/toktickit/e2e/lab-04/actions-and-resolution.spec.ts) (E2E-03, E2E-04) | **PASS** |
+| **AC-09** | TS-01–TS-09, TS-26, TS-28, TS-35, TS-36, E2E-06 | [`server/tests/lab-04/ticket-status-resolution.api.test.ts`](file:///Users/laelaekaungnyunt/Desktop/SOFTWARE%20ENGINEERING/toktickit/server/tests/lab-04/ticket-status-resolution.api.test.ts)<br>[`e2e/lab-04/actions-and-resolution.spec.ts`](file:///Users/laelaekaungnyunt/Desktop/SOFTWARE%20ENGINEERING/toktickit/e2e/lab-04/actions-and-resolution.spec.ts) (E2E-06) | **PASS** |
+| **AC-10** | TS-10–TS-15, TS-23, TS-27, TS-30–TS-32 | [`server/tests/lab-04/ticket-status-resolution.api.test.ts`](file:///Users/laelaekaungnyunt/Desktop/SOFTWARE%20ENGINEERING/toktickit/server/tests/lab-04/ticket-status-resolution.api.test.ts)<br>[`server/tests/lab-04/authorization-regression.api.test.ts`](file:///Users/laelaekaungnyunt/Desktop/SOFTWARE%20ENGINEERING/toktickit/server/tests/lab-04/authorization-regression.api.test.ts) | **PASS** |
+| **AC-11** | TS-16–TS-18, TS-27, E2E-05 | [`server/tests/lab-04/ticket-status-resolution.api.test.ts`](file:///Users/laelaekaungnyunt/Desktop/SOFTWARE%20ENGINEERING/toktickit/server/tests/lab-04/ticket-status-resolution.api.test.ts)<br>[`client/tests/lab-04/StaffTicketDetail-actions-workflow.test.tsx`](file:///Users/laelaekaungnyunt/Desktop/SOFTWARE%20ENGINEERING/toktickit/client/tests/lab-04/StaffTicketDetail-actions-workflow.test.tsx)<br>[`e2e/lab-04/actions-and-resolution.spec.ts`](file:///Users/laelaekaungnyunt/Desktop/SOFTWARE%20ENGINEERING/toktickit/e2e/lab-04/actions-and-resolution.spec.ts) (E2E-05) | **PASS** |
+| **AC-12** | TS-03, TS-19–TS-21, TS-23, TS-29, E2E-06 | [`server/tests/lab-04/ticket-status-resolution.api.test.ts`](file:///Users/laelaekaungnyunt/Desktop/SOFTWARE%20ENGINEERING/toktickit/server/tests/lab-04/ticket-status-resolution.api.test.ts)<br>[`client/tests/lab-04/StaffTicketDetail-actions-workflow.test.tsx`](file:///Users/laelaekaungnyunt/Desktop/SOFTWARE%20ENGINEERING/toktickit/client/tests/lab-04/StaffTicketDetail-actions-workflow.test.tsx)<br>[`e2e/lab-04/actions-and-resolution.spec.ts`](file:///Users/laelaekaungnyunt/Desktop/SOFTWARE%20ENGINEERING/toktickit/e2e/lab-04/actions-and-resolution.spec.ts) (E2E-06) | **PASS** |
+| **AC-13** | TS-22, RG-08, E2E-12 | [`server/tests/lab-04/ticket-status-resolution.api.test.ts`](file:///Users/laelaekaungnyunt/Desktop/SOFTWARE%20ENGINEERING/toktickit/server/tests/lab-04/ticket-status-resolution.api.test.ts)<br>[`e2e/lab-04/cross-role-and-resilience.spec.ts`](file:///Users/laelaekaungnyunt/Desktop/SOFTWARE%20ENGINEERING/toktickit/e2e/lab-04/cross-role-and-resilience.spec.ts) (E2E-12) | **PASS** |
+| **AC-14** | AT-30, AT-36, TS-24, TS-25, ER-02, E2E-11 | [`server/tests/lab-04/actions-taken.api.test.ts`](file:///Users/laelaekaungnyunt/Desktop/SOFTWARE%20ENGINEERING/toktickit/server/tests/lab-04/actions-taken.api.test.ts)<br>[`server/tests/lab-04/ticket-status-resolution.api.test.ts`](file:///Users/laelaekaungnyunt/Desktop/SOFTWARE%20ENGINEERING/toktickit/server/tests/lab-04/ticket-status-resolution.api.test.ts)<br>[`client/tests/lab-04/StaffTicketDetail-state-sync.test.tsx`](file:///Users/laelaekaungnyunt/Desktop/SOFTWARE%20ENGINEERING/toktickit/client/tests/lab-04/StaffTicketDetail-state-sync.test.tsx)<br>[`e2e/lab-04/cross-role-and-resilience.spec.ts`](file:///Users/laelaekaungnyunt/Desktop/SOFTWARE%20ENGINEERING/toktickit/e2e/lab-04/cross-role-and-resilience.spec.ts) (E2E-11) | **PASS** |
+| **AC-15** | SD-01–SD-07, SD-01a, SD-16–SD-18, DA-01, DA-02, DP-01, DP-03, DP-04, PF-01, PF-04, E2E-09 | [`server/tests/lab-04/staff-dashboard.api.test.ts`](file:///Users/laelaekaungnyunt/Desktop/SOFTWARE%20ENGINEERING/toktickit/server/tests/lab-04/staff-dashboard.api.test.ts)<br>[`client/tests/lab-04/StaffDashboard.test.tsx`](file:///Users/laelaekaungnyunt/Desktop/SOFTWARE%20ENGINEERING/toktickit/client/tests/lab-04/StaffDashboard.test.tsx)<br>[`e2e/lab-04/dashboards-and-navigation.spec.ts`](file:///Users/laelaekaungnyunt/Desktop/SOFTWARE%20ENGINEERING/toktickit/e2e/lab-04/dashboards-and-navigation.spec.ts) (E2E-09)<br>[`e2e/lab-04/accessibility-and-performance.spec.ts`](file:///Users/laelaekaungnyunt/Desktop/SOFTWARE%20ENGINEERING/toktickit/e2e/lab-04/accessibility-and-performance.spec.ts) (PF-01, PF-04) | **PASS** |
+| **AC-16** | SD-01a, SD-08–SD-11, SD-15, E2E-02 | [`server/tests/lab-04/staff-dashboard.api.test.ts`](file:///Users/laelaekaungnyunt/Desktop/SOFTWARE%20ENGINEERING/toktickit/server/tests/lab-04/staff-dashboard.api.test.ts)<br>[`client/tests/lab-04/StaffDashboard.test.tsx`](file:///Users/laelaekaungnyunt/Desktop/SOFTWARE%20ENGINEERING/toktickit/client/tests/lab-04/StaffDashboard.test.tsx)<br>[`e2e/lab-04/actions-and-resolution.spec.ts`](file:///Users/laelaekaungnyunt/Desktop/SOFTWARE%20ENGINEERING/toktickit/e2e/lab-04/actions-and-resolution.spec.ts) (E2E-02) | **PASS** |
+| **AC-17** | SD-12–SD-14, SD-16, SD-17, DP-02, E2E-09 | [`server/tests/lab-04/staff-dashboard.api.test.ts`](file:///Users/laelaekaungnyunt/Desktop/SOFTWARE%20ENGINEERING/toktickit/server/tests/lab-04/staff-dashboard.api.test.ts)<br>[`client/tests/lab-04/StaffDashboard.test.tsx`](file:///Users/laelaekaungnyunt/Desktop/SOFTWARE%20ENGINEERING/toktickit/client/tests/lab-04/StaffDashboard.test.tsx)<br>[`client/tests/lab-04/StaffTicketQueue-filters.test.tsx`](file:///Users/laelaekaungnyunt/Desktop/SOFTWARE%20ENGINEERING/toktickit/client/tests/lab-04/StaffTicketQueue-filters.test.tsx)<br>[`e2e/lab-04/dashboards-and-navigation.spec.ts`](file:///Users/laelaekaungnyunt/Desktop/SOFTWARE%20ENGINEERING/toktickit/e2e/lab-04/dashboards-and-navigation.spec.ts) (E2E-09) | **PASS** |
+| **AC-18** | SD-07, DP-05 | [`server/tests/lab-04/staff-dashboard.api.test.ts`](file:///Users/laelaekaungnyunt/Desktop/SOFTWARE%20ENGINEERING/toktickit/server/tests/lab-04/staff-dashboard.api.test.ts)<br>[`client/tests/lab-04/StaffDashboard.test.tsx`](file:///Users/laelaekaungnyunt/Desktop/SOFTWARE%20ENGINEERING/toktickit/client/tests/lab-04/StaffDashboard.test.tsx)<br>[`e2e/lab-04/responsive-visual.spec.ts`](file:///Users/laelaekaungnyunt/Desktop/SOFTWARE%20ENGINEERING/toktickit/e2e/lab-04/responsive-visual.spec.ts) (UI-10 / UI-SS-14) | **PASS** |
+| **AC-19** | RD-01–RD-06, RD-01a, RD-01b, RD-09–RD-12, RD-09a, DA-04, DP-01–DP-05, PF-02, PF-04, E2E-10 | [`server/tests/lab-04/requester-dashboard.api.test.ts`](file:///Users/laelaekaungnyunt/Desktop/SOFTWARE%20ENGINEERING/toktickit/server/tests/lab-04/requester-dashboard.api.test.ts)<br>[`client/tests/lab-04/RequesterDashboard.test.tsx`](file:///Users/laelaekaungnyunt/Desktop/SOFTWARE%20ENGINEERING/toktickit/client/tests/lab-04/RequesterDashboard.test.tsx)<br>[`e2e/lab-04/dashboards-and-navigation.spec.ts`](file:///Users/laelaekaungnyunt/Desktop/SOFTWARE%20ENGINEERING/toktickit/e2e/lab-04/dashboards-and-navigation.spec.ts) (E2E-10)<br>[`e2e/lab-04/accessibility-and-performance.spec.ts`](file:///Users/laelaekaungnyunt/Desktop/SOFTWARE%20ENGINEERING/toktickit/e2e/lab-04/accessibility-and-performance.spec.ts) (PF-02, PF-04) | **PASS** |
+| **AC-20** | RD-04, RD-07, RD-08, E2E-10 | [`server/tests/lab-04/requester-dashboard.api.test.ts`](file:///Users/laelaekaungnyunt/Desktop/SOFTWARE%20ENGINEERING/toktickit/server/tests/lab-04/requester-dashboard.api.test.ts)<br>[`client/tests/lab-04/RequesterDashboard.test.tsx`](file:///Users/laelaekaungnyunt/Desktop/SOFTWARE%20ENGINEERING/toktickit/client/tests/lab-04/RequesterDashboard.test.tsx)<br>[`e2e/lab-04/dashboards-and-navigation.spec.ts`](file:///Users/laelaekaungnyunt/Desktop/SOFTWARE%20ENGINEERING/toktickit/e2e/lab-04/dashboards-and-navigation.spec.ts) (E2E-10) | **PASS** |
+| **AC-21** | RD-13, E2E-10 | [`client/tests/lab-04/RequesterDashboard.test.tsx`](file:///Users/laelaekaungnyunt/Desktop/SOFTWARE%20ENGINEERING/toktickit/client/tests/lab-04/RequesterDashboard.test.tsx)<br>[`e2e/lab-04/dashboards-and-navigation.spec.ts`](file:///Users/laelaekaungnyunt/Desktop/SOFTWARE%20ENGINEERING/toktickit/e2e/lab-04/dashboards-and-navigation.spec.ts) (E2E-10) | **PASS** |
+| **AC-22** | RD-02, RD-14, DA-03, DA-05–DA-07, E2E-08 | [`server/tests/lab-04/authorization-regression.api.test.ts`](file:///Users/laelaekaungnyunt/Desktop/SOFTWARE%20ENGINEERING/toktickit/server/tests/lab-04/authorization-regression.api.test.ts)<br>[`server/tests/lab-04/requester-dashboard.api.test.ts`](file:///Users/laelaekaungnyunt/Desktop/SOFTWARE%20ENGINEERING/toktickit/server/tests/lab-04/requester-dashboard.api.test.ts)<br>[`e2e/lab-04/dashboards-and-navigation.spec.ts`](file:///Users/laelaekaungnyunt/Desktop/SOFTWARE%20ENGINEERING/toktickit/e2e/lab-04/dashboards-and-navigation.spec.ts) (E2E-08) | **PASS** |
+| **AC-23** | MG-01–MG-05, MG-07, MG-08, RD-09a | [`server/tests/lab-04/migration-seed.test.ts`](file:///Users/laelaekaungnyunt/Desktop/SOFTWARE%20ENGINEERING/toktickit/server/tests/lab-04/migration-seed.test.ts)<br>[`server/tests/lab-04/requester-dashboard.api.test.ts`](file:///Users/laelaekaungnyunt/Desktop/SOFTWARE%20ENGINEERING/toktickit/server/tests/lab-04/requester-dashboard.api.test.ts) | **PASS** |
+| **AC-24** | MG-06 | [`server/tests/lab-04/migration-seed.test.ts`](file:///Users/laelaekaungnyunt/Desktop/SOFTWARE%20ENGINEERING/toktickit/server/tests/lab-04/migration-seed.test.ts) | **PASS** |
+| **AC-25** | RG-01–RG-10, TS-33–TS-36, SD-18, DA-08, E2E-14 | All test suites in `server/tests/lab-01..03/`, `client/tests/lab-01..03/`, `e2e/lab-03/` (12 tests)<br>[`e2e/lab-04/cross-role-and-resilience.spec.ts`](file:///Users/laelaekaungnyunt/Desktop/SOFTWARE%20ENGINEERING/toktickit/e2e/lab-04/cross-role-and-resilience.spec.ts) (E2E-14) | **PASS** |
+| **AC-26** | DA-09, UI-10, ER-01, ER-03, ER-05, E2E-13 | [`server/tests/lab-04/actions-taken.api.test.ts`](file:///Users/laelaekaungnyunt/Desktop/SOFTWARE%20ENGINEERING/toktickit/server/tests/lab-04/actions-taken.api.test.ts)<br>[`server/tests/lab-04/authorization-regression.api.test.ts`](file:///Users/laelaekaungnyunt/Desktop/SOFTWARE%20ENGINEERING/toktickit/server/tests/lab-04/authorization-regression.api.test.ts)<br>[`e2e/lab-04/cross-role-and-resilience.spec.ts`](file:///Users/laelaekaungnyunt/Desktop/SOFTWARE%20ENGINEERING/toktickit/e2e/lab-04/cross-role-and-resilience.spec.ts) (E2E-13) | **PASS** |
+| **AC-27** | UI-01–UI-05, UI-10 | [`e2e/lab-04/responsive-visual.spec.ts`](file:///Users/laelaekaungnyunt/Desktop/SOFTWARE%20ENGINEERING/toktickit/e2e/lab-04/responsive-visual.spec.ts) (UI-01 through UI-05, UI-10)<br>Evidence: `UI-SS-01` through `UI-SS-05`, `UI-SS-13`, `UI-SS-14` | **PASS** |
+| **AC-28** | UI-06–UI-09 | [`e2e/lab-04/accessibility-and-performance.spec.ts`](file:///Users/laelaekaungnyunt/Desktop/SOFTWARE%20ENGINEERING/toktickit/e2e/lab-04/accessibility-and-performance.spec.ts) (UI-06 through UI-09)<br>Evidence in [`docs/lab-04/e2e-visual-verification.md`](file:///Users/laelaekaungnyunt/Desktop/SOFTWARE%20ENGINEERING/toktickit/docs/lab-04/e2e-visual-verification.md) | **PASS** |
+| **AC-29** | ER-01–ER-04, E2E-13 | [`client/tests/lab-04/StaffTicketDetail-actions-workflow.test.tsx`](file:///Users/laelaekaungnyunt/Desktop/SOFTWARE%20ENGINEERING/toktickit/client/tests/lab-04/StaffTicketDetail-actions-workflow.test.tsx)<br>[`e2e/lab-04/cross-role-and-resilience.spec.ts`](file:///Users/laelaekaungnyunt/Desktop/SOFTWARE%20ENGINEERING/toktickit/e2e/lab-04/cross-role-and-resilience.spec.ts) (E2E-13) | **PASS** |
+| **AC-30** | RG-10, E2E-14, final integration test and build verification | All 573 automated tests passed; client and server builds passed; full documentation synchronized. Release Candidate verified on `lab4-staging`. | **PASS** |
 
-### 6.3 Test Execution and Reporting
+### 6.3 Test Execution and Reporting Procedure
 
-Before implementation, the planned tests must be reviewed for consistency with the approved API and UI contracts.
+The test-first workflow defined in Section 1.3 was followed throughout Lab 4 development:
 
-During implementation:
-
-1. Write relevant automated tests before feature code.
-2. Record expected failing tests where appropriate.
-3. Implement and verify each feature.
-4. Run related regression tests.
-5. Attach test results and evidence to the relevant pull request.
-6. Resolve failures before integration.
+1. Automated unit, API integration, and component tests were implemented alongside features and executed on each branch.
+2. Full repository regression testing (Labs 1–3 + Lab 4) was run before each feature pull request.
+3. End-to-end user journeys (E2E-01 through E2E-14), responsive layouts (UI-01 through UI-05), accessibility checks (UI-06 through UI-09), and performance smoke tests (PF-01 through PF-04) were automated using Playwright.
+4. Detailed browser run logs, viewport assertions, and screenshot indexes were recorded in [`docs/lab-04/e2e-visual-verification.md`](file:///Users/laelaekaungnyunt/Desktop/SOFTWARE%20ENGINEERING/toktickit/docs/lab-04/e2e-visual-verification.md).
 
 ### 6.4 Final Verification Checklist
 
-- [ ] All AC-01 through AC-30 have supporting test evidence.
-- [ ] Actions Taken API and workflow tests pass (including terminal-action edit rejection AT-44).
-- [ ] Ticket status and resolution tests pass (including atomic transactions and legacy expectedUpdatedAt TS-35, TS-36).
-- [ ] Both dashboard API and UI tests pass (including myActiveActionsCount, totalTicketsCount, resolvedTicketsCount).
-- [ ] IT Staff queue filtering tests pass (assignedToMe=true and priority=Urgent,High).
-- [ ] Role authorization and ownership tests pass (including Administrator access).
-- [ ] Migration and idempotent seed checks pass (including legacy resolved ticket sorting fallback).
-- [ ] Labs 1–3 regression tests pass.
-- [ ] Desktop, tablet, and mobile checks are completed.
-- [ ] Keyboard and accessibility checks are completed.
-- [ ] Concurrency and failure-recovery checks pass.
-- [ ] Performance-smoke results are recorded.
-- [ ] End-to-end user journeys pass.
-- [ ] Production builds pass on the final integrated branch.
-- [ ] Test results and evidence are referenced in the Lab 4 submission.
+- [x] **PASS:** All AC-01 through AC-30 have supporting test evidence.
+- [x] **PASS:** Actions Taken API and workflow tests pass (including terminal-action edit rejection AT-44).
+- [x] **PASS:** Ticket status and resolution tests pass (including atomic transactions and legacy expectedUpdatedAt TS-35, TS-36).
+- [x] **PASS:** Both dashboard API and UI tests pass (including myActiveActionsCount, totalTicketsCount, resolvedTicketsCount).
+- [x] **PASS:** IT Staff queue filtering tests pass (assignedToMe=true and priority=Urgent,High).
+- [x] **PASS:** Role authorization and ownership tests pass (including Administrator access).
+- [x] **PASS:** Migration and idempotent seed checks pass (including legacy resolved ticket sorting fallback).
+- [x] **PASS:** Labs 1–3 regression tests pass (12/12 Playwright tests + full unit/integration regression).
+- [x] **PASS:** Desktop, tablet, and mobile checks are completed across all major screens.
+- [x] **PASS:** Keyboard and accessibility checks are completed.
+- [x] **PASS:** Concurrency and failure-recovery checks pass (genuine 409 conflict feedback).
+- [x] **PASS:** Performance-smoke results are recorded (~6–23 ms dashboard response times).
+- [x] **PASS:** End-to-end user journeys pass (25/25 Lab 4 Playwright tests).
+- [ ] **PENDING:** Production builds pass on the final integrated branch (Verified on `lab4-staging`; awaiting final merge into `main` in Issue #51 release flow).
+- [ ] **PENDING:** Test results and evidence are referenced in the Lab 4 submission (Awaiting final submission PDF compilation).
 
-**Test plan status:** Approved for Implementation.
+---
+
+## 7. Verified Release-Candidate Baseline and Final Test Execution Report
+
+### 7.1 Verified Release-Candidate Baseline
+
+The following test counts represent the verified release-candidate baseline established on `lab4-staging` prior to documentation finalization, rather than tests newly executed in this step:
+
+| Test Suite | Framework / Engine | Files | Tests Passed | Status |
+|---|---|:---:|:---:|:---:|
+| **Frontend Unit & Integration** | Vitest + React Testing Library | 14 test files | **163 / 163** | **PASS** |
+| **Backend API & Integration** | Vitest + Supertest + Prisma | 18 test files | **373 / 373** | **PASS** |
+| **Lab 3 Playwright E2E** | Playwright (Chromium) | 3 spec files | **12 / 12** | **PASS** |
+| **Lab 4 Playwright E2E** | Playwright (Chromium) | 5 spec files | **25 / 25** | **PASS** |
+| **Total Automated Tests** | — | **40 test files** | **573 / 573** | **PASS (100%)** |
+| **Client Production Build** | `tsc && vite build` | — | Zero build errors | **PASS** |
+| **Server Production Build** | `tsc` | — | Zero compile errors | **PASS** |
+
+### 7.2 Canonical Visual Evidence Index
+
+All 15 required visual evidence screenshots are saved under [`artifacts/lab-04/screenshots/`](file:///Users/laelaekaungnyunt/Desktop/SOFTWARE%20ENGINEERING/toktickit/artifacts/lab-04/screenshots/). Full visual verification details are documented in [`docs/lab-04/e2e-visual-verification.md`](file:///Users/laelaekaungnyunt/Desktop/SOFTWARE%20ENGINEERING/toktickit/docs/lab-04/e2e-visual-verification.md).
+
+| Screenshot ID | Canonical Filename | Size | Scope & Description | Status |
+|:---|:---|:---:|:---|:---:|
+| **UI-SS-01** | `UI-SS-01_staff_dashboard_desktop.png` | 105 KB | IT Staff Dashboard — desktop viewport (1280 × 800) | **VERIFIED** |
+| **UI-SS-02** | `UI-SS-02_staff_dashboard_mobile.png` | 36 KB | IT Staff Dashboard — mobile viewport (375 × 667) | **VERIFIED** |
+| **UI-SS-03** | `UI-SS-03_requester_dashboard_desktop.png` | 76 KB | Requester Dashboard — desktop viewport (1280 × 800) | **VERIFIED** |
+| **UI-SS-04** | `UI-SS-04_requester_dashboard_mobile.png` | 37 KB | Requester Dashboard — mobile viewport (375 × 667) | **VERIFIED** |
+| **UI-SS-05** | `UI-SS-05_ticket_detail_actions_list.png` | 108 KB | Ticket Detail with Actions Taken history list | **VERIFIED** |
+| **UI-SS-06** | `UI-SS-06_create_action_form.png` | 63 KB | Create Action Taken form modal dialog | **VERIFIED** |
+| **UI-SS-07** | `UI-SS-07_edit_assign_action_form.png` | 64 KB | Edit or reassign Action Taken form modal dialog | **VERIFIED** |
+| **UI-SS-08** | `UI-SS-08_completed_action_history.png` | 109 KB | Completed Action Taken displayed in audit history | **VERIFIED** |
+| **UI-SS-09** | `UI-SS-09_requester_read_only_actions.png` | 82 KB | Requester read-only Actions Taken view | **VERIFIED** |
+| **UI-SS-10** | `UI-SS-10_ticket_resolution_form.png` | 75 KB | Ticket Resolution form modal dialog | **VERIFIED** |
+| **UI-SS-11** | `UI-SS-11_resolution_validation_error.png` | 75 KB | Resolution gate validation error alert | **VERIFIED** |
+| **UI-SS-12** | `UI-SS-12_stale_update_conflict.png` | 90 KB | Stale-update conflict (HTTP 409) feedback | **VERIFIED** |
+| **UI-SS-13** | `UI-SS-13_tablet_responsive_layout.png` | 98 KB | Tablet responsive layout reflow (768 × 1024) | **VERIFIED** |
+| **UI-SS-14** | `UI-SS-14_empty_dashboard_or_actions_state.png` | 93 KB | Genuine empty Actions Taken state on new ticket | **VERIFIED** |
+| **UI-SS-15** | `UI-SS-15_ticket_resolved_with_summary.png` | 80 KB | Successful ticket resolution with Resolution Summary | **VERIFIED** |
+
+### 7.3 Documented Limitations and Operational Notes
+
+1. **Local Performance Measurements:**
+   - Response times recorded for PF-01 and PF-02 (~6–23 ms for dashboards) were measured in a local development environment against realistic seeded test data. They serve as performance-smoke checks, not production-scale load benchmarks.
+2. **Modal Keyboard Dismissal:**
+   - Lightweight React modal dialogs support keyboard dismissal via standard Tab + Enter on focused Close (`btn-close`) and Cancel buttons; global window-level `Escape`-key event listeners are not implemented.
+3. **Client Version Metadata Synchronization:**
+   - In `StaffTicketDetail.tsx`, a background refresh synchronizes `ticket.updatedAt` following claim, reassignment, or priority mutations. If this background refresh fails due to network interruption, the client retains optimistic state and may submit stale version metadata on an immediate subsequent transition, where genuine backend 409 conflict checks remain strictly enforced.
+
+**Report status:** Final Approved Test Plan and Verification Report.
