@@ -239,6 +239,99 @@ async function main() {
       }
     }
     console.log("Sample tickets seeded successfully.");
+
+    // 5. Actions Taken Seed Records (Issue #45)
+    const admin = await prisma.user.findUnique({ where: { email: "admin@university.edu" } });
+    const wifiTicket = await prisma.ticket.findFirst({
+      where: { summary: "Campus Wi-Fi disconnects frequently in Library" },
+    });
+    const canvasTicket = await prisma.ticket.findFirst({
+      where: { summary: "Canvas assignment submission fails with upload timeout" },
+    });
+    const mfaTicket = await prisma.ticket.findFirst({
+      where: { summary: "MFA Authentication code not receiving via SMS" },
+    });
+
+    if (wifiTicket && canvasTicket && mfaTicket && staff1 && staff2 && admin) {
+      const seedActions = [
+        {
+          ticketId: wifiTicket.id,
+          actionDateTime: new Date("2026-10-10T10:00:00.000Z"),
+          description: "Replaced wireless access point AP-LIB-02 power injector",
+          result: "Access point booted up and signal beacon restored",
+          performedById: staff1.id,
+          assignedToId: staff1.id,
+          status: "Active",
+          followUpRequired: true,
+          followUpNote: "Perform 24-hour channel interference scan in Library 2nd floor",
+          attachmentNotes: "AP signal logs attached to parent ticket",
+        },
+        {
+          ticketId: wifiTicket.id,
+          actionDateTime: new Date("2026-10-09T14:30:00.000Z"),
+          description: "Analyzed spectrum analyzer telemetry in main study hall",
+          result: "Detected intermittent 5GHz channel interference on channel 36",
+          performedById: staff2.id,
+          assignedToId: staff2.id,
+          status: "Completed",
+          followUpRequired: false,
+          followUpNote: null,
+          attachmentNotes: null,
+        },
+        {
+          ticketId: canvasTicket.id,
+          actionDateTime: new Date("2026-10-10T11:15:00.000Z"),
+          description: "Adjusted reverse proxy client_max_body_size and timeout thresholds",
+          result: "Large PDF payload submissions no longer time out",
+          performedById: staff2.id,
+          assignedToId: admin.id,
+          status: "Completed",
+          followUpRequired: false,
+          followUpNote: null,
+          attachmentNotes: "Nginx configuration diff reviewed",
+        },
+        {
+          ticketId: canvasTicket.id,
+          actionDateTime: new Date("2026-10-09T09:00:00.000Z"),
+          description: "Initial plan to rollback Canvas Docker container build",
+          result: "Cancelled after identifying reverse proxy configuration was root cause",
+          performedById: staff1.id,
+          assignedToId: staff1.id,
+          status: "Cancelled",
+          followUpRequired: false,
+          followUpNote: null,
+          attachmentNotes: null,
+        },
+        {
+          ticketId: mfaTicket.id,
+          actionDateTime: new Date("2026-10-11T08:45:00.000Z"),
+          description: "Checked Twilio SMS gateway dispatch queue",
+          result: "Carrier gateway queue was backlogged; outbound messages now clearing",
+          performedById: staff1.id,
+          assignedToId: staff2.id,
+          status: "Active",
+          followUpRequired: true,
+          followUpNote: "Verify requester receives verification SMS and confirm sign-in",
+          attachmentNotes: null,
+        },
+      ];
+
+      for (const actionData of seedActions) {
+        const existingAction = await prisma.actionTaken.findFirst({
+          where: {
+            ticketId: actionData.ticketId,
+            description: actionData.description,
+          },
+        });
+
+        if (!existingAction) {
+          await prisma.actionTaken.create({
+            data: actionData,
+          });
+        }
+      }
+      console.log("Actions Taken seeded successfully.");
+    }
   }
 }
 
