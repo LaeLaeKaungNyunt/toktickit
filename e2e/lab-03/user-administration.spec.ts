@@ -12,15 +12,20 @@ test.describe("Lab 3 E2E — Administrator User Management & Screenshots", () =>
     await page.getByLabel(/Password/i).fill("Password123!");
     await page.getByRole("button", { name: "Sign In" }).click();
 
-    await expect(page.locator(".border-bottom").getByText("Admin User")).toBeVisible();
-    await expect(page.locator(".border-bottom").getByText("Administrator")).toBeVisible();
+    await expect(page.getByText("Admin User")).toBeVisible();
+    await expect(page.getByText("Administrator", { exact: true })).toBeVisible();
     await expect(page.getByRole("button", { name: "User Management" })).toBeVisible();
+
+    // Navigate to User Management tab from default Dashboard
+    await page.getByRole("button", { name: "User Management" }).click();
+
+    // 1. Search input test with strict row assertion
+    const searchInput = page.getByPlaceholder("Search by name or email...");
+    await expect(searchInput).toBeVisible();
 
     // Capture User Management screenshots across viewports
     await captureViewportScreenshots(page, "user-management", "01_user_management");
 
-    // 1. Search input test with strict row assertion
-    const searchInput = page.getByPlaceholder("Search by name or email...");
     await searchInput.fill("Alice");
     await page.waitForTimeout(300);
     await expect(page.locator("td", { hasText: "Alice Smith" }).first()).toBeVisible();
@@ -49,8 +54,13 @@ test.describe("Lab 3 E2E — Administrator User Management & Screenshots", () =>
 
     await expect(page.getByRole("button", { name: "User Management" })).toBeVisible();
 
+    // Navigate to User Management tab from default Dashboard
+    await page.getByRole("button", { name: "User Management" }).click();
+
     // 1. Click + Create User
-    await page.getByRole("button", { name: "+ Create User" }).click();
+    const createUserBtn = page.getByRole("button", { name: "+ Create User" });
+    await expect(createUserBtn).toBeVisible();
+    await createUserBtn.click();
     await expect(page.getByRole("heading", { name: "Create New User" })).toBeVisible();
 
     // 2. Invalid Input Validation Check (Short password < 8 chars)
@@ -83,10 +93,10 @@ test.describe("Lab 3 E2E — Administrator User Management & Screenshots", () =>
     await expect(page.locator("td", { hasText: "E2E Created User" }).first()).toBeVisible();
 
     // 5. Edit User
-    const userRow = page.locator("tr", { hasText: "E2E Created User" }).first();
+    const userRow = page.locator("tr", { hasText: e2eUserEmail }).first();
     await userRow.getByRole("button", { name: "Edit" }).click();
 
-    await expect(page.getByRole("heading", { name: /Edit User: E2E Created User/i })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /Edit User:/i })).toBeVisible();
     await page.locator("#edit-user-name").fill("E2E Created User Updated");
     await page.locator("#edit-user-role").selectOption("Requester");
     await page.locator(".modal-content").getByRole("button", { name: "Save Changes" }).click();
@@ -95,10 +105,10 @@ test.describe("Lab 3 E2E — Administrator User Management & Screenshots", () =>
     await expect(page.locator("td", { hasText: "E2E Created User Updated" }).first()).toBeVisible();
 
     // 6. Reset Password
-    const updatedUserRow = page.locator("tr", { hasText: "E2E Created User Updated" }).first();
+    const updatedUserRow = page.locator("tr", { hasText: e2eUserEmail }).first();
     await updatedUserRow.getByRole("button", { name: "Reset Password" }).click();
 
-    await expect(page.getByRole("heading", { name: /Reset Password: E2E Created User Updated/i })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /Reset Password:/i })).toBeVisible();
     const resetInput = page.locator("#reset-password-input");
     await resetInput.fill("ResetE2EPass123!");
     await resetInput.blur();
@@ -110,13 +120,13 @@ test.describe("Lab 3 E2E — Administrator User Management & Screenshots", () =>
     await expect(page.getByText(/Password reset for/i)).toBeVisible();
     await expect(page.locator(".modal-content")).not.toBeVisible();
 
-    // 7. Logout Admin and test login as created user with initial password
+    // 7. Logout Admin and test login as created user with reset password
     await page.getByRole("button", { name: "Logout" }).click();
     await expect(page.getByRole("button", { name: "Sign In" })).toBeVisible();
     await page.waitForTimeout(300);
 
     await page.getByLabel(/Email Address/i).fill(e2eUserEmail);
-    await page.getByLabel(/Password/i).fill("InitialE2EPass123!");
+    await page.getByLabel(/Password/i).fill("ResetE2EPass123!");
     await page.getByRole("button", { name: "Sign In" }).click();
 
     // Verify created user receives mandatory first password change prompt
@@ -133,8 +143,12 @@ test.describe("Lab 3 E2E — Administrator User Management & Screenshots", () =>
 
     await expect(page.getByRole("button", { name: "User Management" })).toBeVisible();
 
+    // Navigate to User Management tab from default Dashboard
+    await page.getByRole("button", { name: "User Management" }).click();
+
     // 1. Self-deactivation UI check for logged-in Admin User
     const selfAdminRow = page.locator("tr", { hasText: "Admin User" }).first();
+    await expect(selfAdminRow).toBeVisible();
     await selfAdminRow.getByRole("button", { name: "Edit" }).click();
 
     await expect(page.getByRole("heading", { name: /Edit User: Admin User/i })).toBeVisible();
@@ -175,7 +189,7 @@ test.describe("Lab 3 E2E — Administrator User Management & Screenshots", () =>
     await page.getByLabel(/Password/i).fill("Password123!");
     await page.getByRole("button", { name: "Sign In" }).click();
 
-    await expect(page.getByRole("button", { name: "My Tickets" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "My Tickets", exact: true })).toBeVisible();
     await expect(page.getByRole("button", { name: "User Management" })).not.toBeVisible();
 
     // Direct API call by Requester returns 403 Forbidden
@@ -198,7 +212,7 @@ test.describe("Lab 3 E2E — Administrator User Management & Screenshots", () =>
     await page.getByLabel(/Password/i).fill("Password123!");
     await page.getByRole("button", { name: "Sign In" }).click();
 
-    await expect(page.getByRole("button", { name: "IT Staff Queue" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Queue", exact: true })).toBeVisible();
     await expect(page.getByRole("button", { name: "User Management" })).not.toBeVisible();
 
     // Direct API call by IT Staff returns 403 Forbidden

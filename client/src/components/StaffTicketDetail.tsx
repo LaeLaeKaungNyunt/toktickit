@@ -370,6 +370,21 @@ export const StaffTicketDetail: React.FC<StaffTicketDetailProps> = ({ ticketId, 
     }
   };
 
+  // Helper to synchronize fresh ticket metadata (including updatedAt) after mutations
+  const refreshTicketDetail = async () => {
+    if (!token || !ticketId) return;
+    try {
+      const fresh = await fetchStaffTicketDetail(token, ticketId);
+      if (fresh?.ticket) {
+        setTicket(fresh.ticket);
+        setSelectedAssignee(fresh.ticket.assignee?.id || "");
+        setSelectedPriority(fresh.ticket.itPriority || fresh.ticket.requestedPriority || "Medium");
+      }
+    } catch {
+      // Retain optimistic state if background refresh fails
+    }
+  };
+
   // Claim ticket handler
   const handleClaimTicket = async () => {
     if (!token || !ticketId || isAssigning) return;
@@ -386,6 +401,7 @@ export const StaffTicketDetail: React.FC<StaffTicketDetailProps> = ({ ticketId, 
         });
         setSelectedAssignee(res.ticket.assignee?.id || "");
       }
+      await refreshTicketDetail();
       setActionSuccess("Ticket claimed successfully.");
     } catch (err: any) {
       setActionError(err.message || "Failed to claim ticket.");
@@ -410,6 +426,7 @@ export const StaffTicketDetail: React.FC<StaffTicketDetailProps> = ({ ticketId, 
           assignee: res.ticket.assignee,
         });
       }
+      await refreshTicketDetail();
       setActionSuccess(targetId ? "Ticket reassigned successfully." : "Ticket unassigned.");
     } catch (err: any) {
       setActionError(err.message || "Failed to reassign ticket.");
@@ -433,6 +450,7 @@ export const StaffTicketDetail: React.FC<StaffTicketDetailProps> = ({ ticketId, 
           itPriority: res.ticket.itPriority,
         });
       }
+      await refreshTicketDetail();
       setActionSuccess(`IT Priority updated to ${res.ticket.itPriority}.`);
     } catch (err: any) {
       setActionError(err.message || "Failed to update IT Priority.");
