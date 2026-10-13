@@ -82,7 +82,7 @@ test.describe("Lab 3 E2E — Authentication, Navigation & Screenshots", () => {
 
     // Verify unlocked and authenticated as Requester
     await expect(page.locator(".border-bottom").getByText("Initial Password User")).toBeVisible();
-    await expect(page.locator(".border-bottom").getByText("Requester")).toBeVisible();
+    await expect(page.locator(".border-bottom").first().getByText("Requester", { exact: true })).toBeVisible();
   });
 
   test("5. Authenticated Requester navigation, screens & screenshots", async ({ page }) => {
@@ -93,8 +93,8 @@ test.describe("Lab 3 E2E — Authentication, Navigation & Screenshots", () => {
     await page.getByLabel(/Password/i).fill("Password123!");
     await page.getByRole("button", { name: "Sign In" }).click();
 
-    await expect(page.locator(".border-bottom").getByText("Alice Smith")).toBeVisible();
-    await expect(page.locator(".border-bottom").getByText("Requester")).toBeVisible();
+    await expect(page.locator(".border-bottom").first().getByText("Alice Smith")).toBeVisible();
+    await expect(page.locator(".border-bottom").first().getByText("Requester", { exact: true })).toBeVisible();
 
     // 1. Create Ticket Screen
     await expect(page.locator(".nav-tabs").getByRole("button", { name: "Create Ticket" })).toBeVisible();

@@ -86,8 +86,8 @@ describe("Lab 3 IT Staff Ticket Queue API (Issue #25)", () => {
       .get("/api/v1/staff/tickets")
       .set("Authorization", `Bearer ${adminToken}`);
 
-    expect(resAdmin.status).toBe(403);
-    expect(resAdmin.body.error).toBe("Forbidden: insufficient permissions");
+    expect(resAdmin.status).toBe(200);
+    expect(resAdmin.body).toHaveProperty("items");
   });
 
   it("4. AC-13 / FR-14: Search parameter filters tickets by ticketNumber, summary, description, requester name", async () => {

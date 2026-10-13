@@ -34,6 +34,8 @@ model User {
   removedAttachments Attachment[]  @relation("AttachmentRemovedBy")
   comments           TicketComment[]
   internalNotes      InternalNote[]
+  performedActions   ActionTaken[] @relation("ActionPerformer")
+  assignedActions    ActionTaken[] @relation("ActionAssignee")
 
   @@index([role])
   @@index([email])
@@ -61,6 +63,7 @@ model Ticket {
   itPriority          String?       // Low | Medium | High | Urgent | null
   currentStatus       String        @default("New")
   requesterResolution String?       // RESOLVED | null
+  resolutionSummary   String?
   createdAt           DateTime      @default(now())
   updatedAt           DateTime      @updatedAt
 
@@ -72,6 +75,7 @@ model Ticket {
   attachments         Attachment[]
   comments            TicketComment[]
   internalNotes       InternalNote[]
+  actions             ActionTaken[]
 
   @@index([requesterId, createdAt])
   @@index([requesterId, currentStatus])
@@ -143,4 +147,27 @@ model Attachment {
   removedByRequester   User?     @relation("AttachmentRemovedBy", fields: [removedByRequesterId], references: [id])
 
   @@index([ticketId, removedAt])
+}
+
+model ActionTaken {
+  id               String   @id @default(uuid())
+  ticketId         String
+  actionDateTime   DateTime
+  description      String
+  result           String
+  performedById    String
+  assignedToId     String?
+  followUpRequired Boolean
+  followUpNote     String?
+  attachmentNotes  String?
+  status           String   @default("Active")
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  ticket      Ticket @relation(fields: [ticketId], references: [id])
+  performedBy User   @relation("ActionPerformer", fields: [performedById], references: [id])
+  assignedTo  User?  @relation("ActionAssignee", fields: [assignedToId], references: [id])
+
+  @@index([ticketId])
+  @@index([assignedToId, status])
 }

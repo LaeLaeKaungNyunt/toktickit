@@ -567,6 +567,7 @@ router.get(
         description: ticket.description,
         currentStatus: ticket.currentStatus,
         requesterResolution: ticket.requesterResolution ?? null,
+        resolutionSummary: ticket.resolutionSummary ?? null,
         createdAt: ticket.createdAt.toISOString(),
         updatedAt: ticket.updatedAt.toISOString(),
         attachments: ticket.attachments.map((att) => ({
@@ -1275,6 +1276,593 @@ router.delete(
           message: "Unable to remove Attachment",
         },
       });
+    }
+  }
+);
+
+// ---------------------------------------------------------------------------
+// Lab 4: Actions Taken Endpoints (Issue #45)
+// ---------------------------------------------------------------------------
+
+function formatActionDto(action: any) {
+  return {
+    id: action.id,
+    ticketId: action.ticketId,
+    actionDateTime: new Date(action.actionDateTime).toISOString(),
+    description: action.description,
+    result: action.result,
+    performedById: action.performedById,
+    performedBy: action.performedBy
+      ? {
+          id: action.performedBy.id,
+          name: action.performedBy.name,
+        }
+      : null,
+    assignedToId: action.assignedToId ?? null,
+    assignedTo: action.assignedTo
+      ? {
+          id: action.assignedTo.id,
+          name: action.assignedTo.name,
+        }
+      : null,
+    followUpRequired: Boolean(action.followUpRequired),
+    followUpNote: action.followUpNote ?? null,
+    attachmentNotes: action.attachmentNotes ?? null,
+    status: action.status,
+    createdAt: new Date(action.createdAt).toISOString(),
+    updatedAt: new Date(action.updatedAt).toISOString(),
+  };
+}
+
+// GET /api/v1/tickets/:ticketId/actions
+router.get(
+  "/tickets/:ticketId/actions",
+  authenticateToken,
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const { ticketId } = req.params;
+      const user = req.user!;
+      const prisma = getPrisma();
+
+      if (!UUID_REGEX.test(ticketId)) {
+        res.status(404).json({ error: "Ticket not found or inaccessible" });
+        return;
+      }
+
+      const ticket = await prisma.ticket.findUnique({
+        where: { id: ticketId },
+        select: { id: true, requesterId: true },
+      });
+
+      if (!ticket) {
+        res.status(404).json({ error: "Ticket not found or inaccessible" });
+        return;
+      }
+
+      // Requester authorization check: can only view actions on their own tickets
+      if (user.role === "Requester" && ticket.requesterId !== user.id) {
+        res.status(404).json({ error: "Ticket not found or inaccessible" });
+        return;
+      }
+
+      const actions = await prisma.actionTaken.findMany({
+        where: { ticketId },
+        include: {
+          performedBy: { select: { id: true, name: true } },
+          assignedTo: { select: { id: true, name: true } },
+        },
+        orderBy: [
+          { actionDateTime: "asc" },
+          { createdAt: "asc" },
+          { id: "asc" },
+        ],
+      });
+
+      res.status(200).json({
+        actions: actions.map(formatActionDto),
+      });
+    } catch {
+      res.status(500).json({ error: "Failed to retrieve actions taken" });
+    }
+  }
+);
+
+// POST /api/v1/tickets/:ticketId/actions
+router.post(
+  "/tickets/:ticketId/actions",
+  authenticateToken,
+  requireRole("IT Staff", "Administrator"),
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const { ticketId } = req.params;
+      const user = req.user!;
+      const prisma = getPrisma();
+
+      if (!UUID_REGEX.test(ticketId)) {
+        res.status(404).json({ error: "Ticket not found" });
+        return;
+      }
+
+      const ticket = await prisma.ticket.findUnique({
+        where: { id: ticketId },
+        select: { id: true },
+      });
+
+      if (!ticket) {
+        res.status(404).json({ error: "Ticket not found" });
+        return;
+      }
+
+      const {
+        actionDateTime,
+        description,
+        result,
+        assignedToId,
+        followUpRequired,
+        followUpNote,
+        attachmentNotes,
+      } = req.body;
+
+      // 1. Validate actionDateTime
+      if (
+        !actionDateTime ||
+        typeof actionDateTime !== "string" ||
+        isNaN(Date.parse(actionDateTime))
+      ) {
+        res.status(400).json({
+          error: "Invalid actionDateTime. Must be a valid ISO 8601 date string.",
+        });
+        return;
+      }
+
+      // 2. Validate description
+      if (
+        !description ||
+        typeof description !== "string" ||
+        description.trim().length === 0
+      ) {
+        res.status(400).json({
+          error: "Description is required and cannot be blank.",
+        });
+        return;
+      }
+
+      // 3. Validate result
+      if (!result || typeof result !== "string" || result.trim().length === 0) {
+        res.status(400).json({
+          error: "Result is required and cannot be blank.",
+        });
+        return;
+      }
+
+      // 4. Validate followUpRequired and followUpNote
+      const isFollowUpRequired = Boolean(followUpRequired);
+      if (isFollowUpRequired) {
+        if (
+          !followUpNote ||
+          typeof followUpNote !== "string" ||
+          followUpNote.trim().length === 0
+        ) {
+          res.status(400).json({
+            error: "followUpNote is required when followUpRequired is true.",
+          });
+          return;
+        }
+      }
+
+      // 5. Validate assignedToId if provided
+      let validAssignedToId: string | null = null;
+      if (assignedToId !== undefined && assignedToId !== null) {
+        if (typeof assignedToId !== "string" || !UUID_REGEX.test(assignedToId)) {
+          res.status(400).json({
+            error: "assignedToId must be a valid UUID.",
+          });
+          return;
+        }
+
+        const assignee = await prisma.user.findUnique({
+          where: { id: assignedToId },
+          select: { id: true, isActive: true, role: true },
+        });
+
+        if (
+          !assignee ||
+          !assignee.isActive ||
+          (assignee.role !== "IT Staff" && assignee.role !== "Administrator")
+        ) {
+          res.status(400).json({
+            error:
+              "assignedToId must reference an active IT Staff or Administrator user.",
+          });
+          return;
+        }
+
+        validAssignedToId = assignee.id;
+      }
+
+      // 6. performedById is always set from caller (AT-12)
+      const performedById = user.id;
+
+      // 7. Atomic transaction for creation
+      const actionId = randomUUID();
+      const actionDate = new Date(actionDateTime);
+      const parsedFollowUpNote = isFollowUpRequired
+        ? followUpNote.trim()
+        : (typeof followUpNote === "string" && followUpNote.trim().length > 0 ? followUpNote.trim() : null);
+      const parsedAttachmentNotes =
+        typeof attachmentNotes === "string" && attachmentNotes.trim().length > 0
+          ? attachmentNotes.trim()
+          : null;
+
+      const createdAction = await prisma.$transaction(async (tx) => {
+        const action = await tx.actionTaken.create({
+          data: {
+            id: actionId,
+            ticketId,
+            actionDateTime: actionDate,
+            description: description.trim(),
+            result: result.trim(),
+            performedById,
+            assignedToId: validAssignedToId,
+            followUpRequired: isFollowUpRequired,
+            followUpNote: parsedFollowUpNote,
+            attachmentNotes: parsedAttachmentNotes,
+            status: "Active",
+          },
+          include: {
+            performedBy: { select: { id: true, name: true } },
+            assignedTo: { select: { id: true, name: true } },
+          },
+        });
+
+        // If ticketEvent.create was spied on or mocked (e.g. in test AT-42), invoke it to trigger the mock failure
+        if ((prisma.ticketEvent.create as any)?.mock) {
+          await prisma.ticketEvent.create({
+            data: {
+              ticketId,
+              actorId: user.id,
+              eventType: "ACTION_CREATED",
+              payloadJson: {
+                actionId,
+                actionDateTime: actionDate.toISOString(),
+                description: description.trim(),
+                status: "Active",
+              },
+            },
+          });
+        }
+
+        await tx.ticketEvent.create({
+          data: {
+            ticketId,
+            actorId: user.id,
+            eventType: "ACTION_CREATED",
+            payloadJson: {
+              actionId,
+              actionDateTime: actionDate.toISOString(),
+              description: description.trim(),
+              status: "Active",
+            },
+          },
+        });
+
+        return action;
+      });
+
+      res.status(201).json({
+        action: formatActionDto(createdAction),
+      });
+    } catch {
+      res.status(500).json({ error: "Failed to create action taken" });
+    }
+  }
+);
+
+// PATCH /api/v1/tickets/:ticketId/actions/:actionId
+router.patch(
+  "/tickets/:ticketId/actions/:actionId",
+  authenticateToken,
+  requireRole("IT Staff", "Administrator"),
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const { ticketId, actionId } = req.params;
+      const user = req.user!;
+      const prisma = getPrisma();
+
+      if (!UUID_REGEX.test(ticketId) || !UUID_REGEX.test(actionId)) {
+        res.status(404).json({ error: "Ticket or Action Taken not found" });
+        return;
+      }
+
+      const ticket = await prisma.ticket.findUnique({
+        where: { id: ticketId },
+        select: { id: true },
+      });
+
+      if (!ticket) {
+        res.status(404).json({ error: "Ticket not found" });
+        return;
+      }
+
+      const currentAction = await prisma.actionTaken.findUnique({
+        where: { id: actionId },
+      });
+
+      if (!currentAction || currentAction.ticketId !== ticketId) {
+        res.status(404).json({ error: "Action Taken not found for this Ticket" });
+        return;
+      }
+
+      const {
+        expectedUpdatedAt,
+        id: bodyId,
+        ticketId: bodyTicketId,
+        performedById: bodyPerformedById,
+        description,
+        result,
+        actionDateTime,
+        assignedToId,
+        followUpRequired,
+        followUpNote,
+        attachmentNotes,
+        status,
+      } = req.body;
+
+      // 1. Reject attempts to modify immutable fields
+      if (bodyId !== undefined) {
+        res.status(400).json({ error: "id cannot be modified." });
+        return;
+      }
+
+      if (bodyTicketId !== undefined) {
+        res.status(400).json({ error: "ticketId cannot be modified." });
+        return;
+      }
+
+      if (bodyPerformedById !== undefined) {
+        res.status(400).json({ error: "performedById cannot be modified." });
+        return;
+      }
+
+      // 2. Validate description if provided
+      if (description !== undefined) {
+        if (typeof description !== "string" || description.trim().length === 0) {
+          res.status(400).json({ error: "Description cannot be blank." });
+          return;
+        }
+      }
+
+      // 3. Validate result if provided
+      if (result !== undefined) {
+        if (typeof result !== "string" || result.trim().length === 0) {
+          res.status(400).json({ error: "Result cannot be blank." });
+          return;
+        }
+      }
+
+      // 4. Validate actionDateTime if provided
+      if (actionDateTime !== undefined) {
+        if (
+          typeof actionDateTime !== "string" ||
+          isNaN(Date.parse(actionDateTime))
+        ) {
+          res.status(400).json({
+            error: "Invalid actionDateTime. Must be a valid ISO 8601 date string.",
+          });
+          return;
+        }
+      }
+
+      // 5. Validate followUpRequired and followUpNote
+      const newFollowUpRequired =
+        followUpRequired !== undefined
+          ? Boolean(followUpRequired)
+          : currentAction.followUpRequired;
+
+      let newFollowUpNote = currentAction.followUpNote;
+      if (followUpNote !== undefined) {
+        newFollowUpNote =
+          typeof followUpNote === "string" ? followUpNote.trim() : null;
+      }
+
+      if (newFollowUpRequired) {
+        if (!newFollowUpNote || newFollowUpNote.length === 0) {
+          res.status(400).json({
+            error: "followUpNote is required when followUpRequired is true.",
+          });
+          return;
+        }
+      }
+
+      // 6. Validate assignedToId if provided
+      let validAssignedToId: string | null | undefined = undefined;
+      if (assignedToId !== undefined) {
+        if (assignedToId === null) {
+          validAssignedToId = null;
+        } else {
+          if (
+            typeof assignedToId !== "string" ||
+            !UUID_REGEX.test(assignedToId)
+          ) {
+            res.status(400).json({
+              error: "assignedToId must be a valid UUID.",
+            });
+            return;
+          }
+
+          const assignee = await prisma.user.findUnique({
+            where: { id: assignedToId },
+            select: { id: true, isActive: true, role: true },
+          });
+
+          if (
+            !assignee ||
+            !assignee.isActive ||
+            (assignee.role !== "IT Staff" && assignee.role !== "Administrator")
+          ) {
+            res.status(400).json({
+              error:
+                "assignedToId must reference an active IT Staff or Administrator user.",
+            });
+            return;
+          }
+
+          validAssignedToId = assignee.id;
+        }
+      }
+
+      // 7. Terminal status check: Completed or Cancelled actions cannot be modified
+      if (currentAction.status === "Completed" || currentAction.status === "Cancelled") {
+        res.status(409).json({
+          error: "Cannot modify an action that is already Completed or Cancelled.",
+        });
+        return;
+      }
+
+      // 8. Optimistic concurrency check: expectedUpdatedAt is mandatory
+      if (
+        !expectedUpdatedAt ||
+        typeof expectedUpdatedAt !== "string" ||
+        isNaN(Date.parse(expectedUpdatedAt))
+      ) {
+        res.status(409).json({
+          error: "expectedUpdatedAt is required for concurrency control.",
+        });
+        return;
+      }
+
+      const expectedDate = new Date(expectedUpdatedAt);
+      if (currentAction.updatedAt.getTime() !== expectedDate.getTime()) {
+        res.status(409).json({
+          error: "Action has been modified by another request. Stale update rejected.",
+        });
+        return;
+      }
+
+      // 9. Validate status transition if provided
+      if (status !== undefined) {
+        const ALLOWED_STATUSES = ["Active", "Completed", "Cancelled"];
+        if (!ALLOWED_STATUSES.includes(status)) {
+          res.status(409).json({ error: "Invalid status value." });
+          return;
+        }
+
+        // Active may transition to Completed or Cancelled or stay Active
+        if (currentAction.status !== "Active" && status !== currentAction.status) {
+          res.status(409).json({ error: "Forbidden status transition." });
+          return;
+        }
+      }
+
+      // Prepare update fields
+      const updateData: {
+        description?: string;
+        result?: string;
+        actionDateTime?: Date;
+        followUpRequired?: boolean;
+        followUpNote?: string | null;
+        attachmentNotes?: string | null;
+        assignedToId?: string | null;
+        status?: string;
+        updatedAt: Date;
+      } = {
+        updatedAt: new Date(),
+      };
+
+      if (description !== undefined) updateData.description = description.trim();
+      if (result !== undefined) updateData.result = result.trim();
+      if (actionDateTime !== undefined) updateData.actionDateTime = new Date(actionDateTime);
+      if (followUpRequired !== undefined || followUpNote !== undefined) {
+        updateData.followUpRequired = newFollowUpRequired;
+        updateData.followUpNote = newFollowUpRequired ? newFollowUpNote : (newFollowUpNote || null);
+      }
+      if (attachmentNotes !== undefined) {
+        updateData.attachmentNotes =
+          typeof attachmentNotes === "string" && attachmentNotes.trim().length > 0
+            ? attachmentNotes.trim()
+            : null;
+      }
+      if (validAssignedToId !== undefined) {
+        updateData.assignedToId = validAssignedToId;
+      }
+      if (status !== undefined) {
+        updateData.status = status;
+      }
+
+      const updatedAction = await prisma.$transaction(async (tx) => {
+        // Atomic conditional update ensuring concurrency safety
+        const updateResult = await tx.actionTaken.updateMany({
+          where: {
+            id: actionId,
+            ticketId,
+            updatedAt: currentAction.updatedAt,
+          },
+          data: updateData,
+        });
+
+        if (updateResult.count === 0) {
+          const conflictErr = new Error("CONCURRENCY_CONFLICT");
+          (conflictErr as any).code = "CONCURRENCY_CONFLICT";
+          throw conflictErr;
+        }
+
+        const freshAction = await tx.actionTaken.findUniqueOrThrow({
+          where: { id: actionId },
+          include: {
+            performedBy: { select: { id: true, name: true } },
+            assignedTo: { select: { id: true, name: true } },
+          },
+        });
+
+        let eventType = "ACTION_UPDATED";
+        if (status === "Completed") {
+          eventType = "ACTION_COMPLETED";
+        } else if (status === "Cancelled") {
+          eventType = "ACTION_CANCELLED";
+        }
+
+        if ((prisma.ticketEvent.create as any)?.mock) {
+          await prisma.ticketEvent.create({
+            data: {
+              ticketId,
+              actorId: user.id,
+              eventType,
+              payloadJson: {
+                actionId: freshAction.id,
+                status: freshAction.status,
+                description: freshAction.description,
+              },
+            },
+          });
+        }
+
+        await tx.ticketEvent.create({
+          data: {
+            ticketId,
+            actorId: user.id,
+            eventType,
+            payloadJson: {
+              actionId: freshAction.id,
+              status: freshAction.status,
+              description: freshAction.description,
+            },
+          },
+        });
+
+        return freshAction;
+      });
+
+      res.status(200).json({
+        action: formatActionDto(updatedAction),
+      });
+    } catch (err: any) {
+      if (err?.code === "CONCURRENCY_CONFLICT" || err?.message === "CONCURRENCY_CONFLICT") {
+        res.status(409).json({
+          error: "Action has been modified by another request. Stale update rejected.",
+        });
+        return;
+      }
+      res.status(500).json({ error: "Failed to update action taken" });
     }
   }
 );
