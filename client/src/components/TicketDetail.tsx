@@ -7,7 +7,9 @@ import {
   softRemoveAttachment,
   updateRequesterResolution,
 } from "../api/lab02.js";
+import { fetchTicketActions } from "../api/staff.js";
 import { TicketDetailDto, AttachmentDto } from "../types/lab02.js";
+import { ActionTakenDto } from "../types/staff.js";
 
 interface TicketDetailProps {
   ticketId: string;
@@ -26,6 +28,11 @@ export default function TicketDetail({ ticketId, onBack }: TicketDetailProps) {
   const [error, setError] = useState<string | null>(null);
   const [isUpdatingResolution, setIsUpdatingResolution] = useState<boolean>(false);
   const [resolutionError, setResolutionError] = useState<string | null>(null);
+
+  // Actions Taken state (read-only for Requester)
+  const [actions, setActions] = useState<ActionTakenDto[]>([]);
+  const [actionsLoading, setActionsLoading] = useState<boolean>(true);
+  const [actionsError, setActionsError] = useState<string | null>(null);
 
   const handleToggleResolution = async () => {
     if (!ticket || isUpdatingResolution) return;
@@ -50,6 +57,9 @@ export default function TicketDetail({ ticketId, onBack }: TicketDetailProps) {
     setTicket(null);
     setError(null);
     setIsLoading(true);
+    setActions([]);
+    setActionsLoading(true);
+    setActionsError(null);
   }
 
   // Upload state
@@ -69,6 +79,8 @@ export default function TicketDetail({ ticketId, onBack }: TicketDetailProps) {
     if (!user || !ticketId) {
       setTicket(null);
       setIsLoading(false);
+      setActions([]);
+      setActionsLoading(false);
       return;
     }
 
@@ -82,12 +94,38 @@ export default function TicketDetail({ ticketId, onBack }: TicketDetailProps) {
     setRemovalSuccess(null);
     setSelectedFile(null);
     setRemovingAttachment(null);
+    setActions([]);
+    setActionsLoading(true);
+    setActionsError(null);
 
     fetchTicketDetail(ticketId, token ?? undefined)
       .then((data) => {
         if (isMounted) {
           setTicket(data);
           setIsLoading(false);
+          if (typeof fetchTicketActions === "function") {
+            const maybePromise = fetchTicketActions(token ?? "", ticketId);
+            if (maybePromise && typeof maybePromise.then === "function") {
+              maybePromise
+                .then((actData) => {
+                  if (isMounted) {
+                    setActions(actData?.actions || []);
+                    setActionsLoading(false);
+                  }
+                })
+                .catch((err) => {
+                  if (isMounted) {
+                    setActions([]);
+                    setActionsError(err.message || "Failed to load actions taken");
+                    setActionsLoading(false);
+                  }
+                });
+            } else {
+              setActionsLoading(false);
+            }
+          } else {
+            setActionsLoading(false);
+          }
         }
       })
       .catch((err) => {
@@ -95,6 +133,7 @@ export default function TicketDetail({ ticketId, onBack }: TicketDetailProps) {
           setTicket(null);
           setError(err.message || "Ticket not found or inaccessible");
           setIsLoading(false);
+          setActionsLoading(false);
         }
       });
 
@@ -146,6 +185,13 @@ export default function TicketDetail({ ticketId, onBack }: TicketDetailProps) {
 
   const activeAttachments = ticket.attachments ?? [];
   const isMaxAttachments = activeAttachments.length >= 5;
+
+  const sortedActions = [...actions].sort(
+    (a, b) =>
+      new Date(a.actionDateTime).getTime() - new Date(b.actionDateTime).getTime() ||
+      new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime() ||
+      a.id.localeCompare(b.id)
+  );
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setUploadError(null);
@@ -386,6 +432,99 @@ export default function TicketDetail({ ticketId, onBack }: TicketDetailProps) {
             >
               {ticket.description}
             </div>
+          </div>
+
+          {/* Resolution Summary (Visible when ticket has a saved resolution summary) */}
+          {ticket.resolutionSummary && (
+            <div className="card mb-4 border-success shadow-sm" style={{ borderRadius: "10px", backgroundColor: "#EAF6EF" }}>
+              <div className="card-body p-3">
+                <h4 className="h6 fw-bold text-success mb-2">RESOLUTION SUMMARY</h4>
+                <div
+                  className="p-3 bg-white rounded border text-wrap"
+                  style={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}
+                >
+                  {ticket.resolutionSummary}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Actions Taken Section (Read-only for Requester) */}
+          <hr />
+          <div className="mt-4 mb-4">
+            <h4 className="h5 fw-bold mb-3" style={{ color: "#006B3C" }}>
+              Actions Taken ({sortedActions.length})
+            </h4>
+
+            {actionsError && (
+              <div className="alert alert-danger" role="alert">
+                {actionsError}
+              </div>
+            )}
+
+            {actionsLoading ? (
+              <div className="text-muted small mb-3">Loading actions taken...</div>
+            ) : sortedActions.length === 0 ? (
+              <p className="text-muted italic mb-3">
+                No actions taken have been recorded for this ticket.
+              </p>
+            ) : (
+              <div className="d-flex flex-column gap-3 mb-4">
+                {sortedActions.map((act) => (
+                  <div
+                    key={act.id}
+                    className="card border-0 shadow-sm"
+                    style={{ backgroundColor: "#F8F9FA", borderRadius: "8px" }}
+                  >
+                    <div className="card-body p-3">
+                      <div className="d-flex flex-wrap justify-content-between align-items-center mb-2">
+                        <span className="fw-semibold text-dark">
+                          {new Date(act.actionDateTime).toLocaleString()} &mdash; Performed by: {act.performedBy?.name || "Unknown"}
+                        </span>
+                        <span
+                          className={`badge ${
+                            act.status === "Completed"
+                              ? "bg-success"
+                              : act.status === "Cancelled"
+                              ? "bg-secondary"
+                              : "bg-primary"
+                          }`}
+                        >
+                          {act.status}
+                        </span>
+                      </div>
+                      <div className="mb-2">
+                        <small className="text-muted d-block fw-bold">DESCRIPTION</small>
+                        <p className="mb-1 text-dark" style={{ whiteSpace: "pre-wrap" }}>
+                          {act.description}
+                        </p>
+                      </div>
+                      <div className="mb-2">
+                        <small className="text-muted d-block fw-bold">RESULT</small>
+                        <p className="mb-1 text-dark" style={{ whiteSpace: "pre-wrap" }}>
+                          {act.result}
+                        </p>
+                      </div>
+                      <div className="small text-muted d-flex flex-wrap gap-3">
+                        <span>
+                          <strong>Follow-Up:</strong> {act.followUpRequired ? "Yes" : "No"}
+                        </span>
+                        {act.followUpNote && (
+                          <span>
+                            <strong>Follow-Up Note:</strong> {act.followUpNote}
+                          </span>
+                        )}
+                        {act.attachmentNotes && (
+                          <span>
+                            <strong>Attachment Notes:</strong> {act.attachmentNotes}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Attachments Section */}

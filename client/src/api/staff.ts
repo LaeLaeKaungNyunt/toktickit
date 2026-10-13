@@ -1,4 +1,10 @@
-import { StaffQueueQueryParams, StaffQueueResponse } from "../types/staff";
+import {
+  StaffQueueQueryParams,
+  StaffQueueResponse,
+  ActionTakenDto,
+  CreateActionTakenPayload,
+  UpdateActionTakenPayload,
+} from "../types/staff";
 
 const API_BASE = "http://localhost:3000/api/v1";
 
@@ -47,6 +53,7 @@ export interface StaffTicketDetailResponse {
     status: string;
     itPriority: string | null;
     requesterResolution: string | null;
+    resolutionSummary?: string | null;
     assignee: { id: string; name: string; email?: string } | null;
     createdAt: string;
     updatedAt: string;
@@ -166,20 +173,32 @@ export async function updateStaffTicketPriority(
 export async function updateStaffTicketStatus(
   token: string,
   ticketId: string,
-  status: string
-): Promise<{ ticket: { id: string; status: string } }> {
+  status: string,
+  expectedUpdatedAt?: string,
+  resolutionSummary?: string
+): Promise<{ ticket: { id: string; status: string; resolutionSummary?: string | null; updatedAt?: string } }> {
+  const payload: Record<string, any> = { status };
+  if (expectedUpdatedAt !== undefined) {
+    payload.expectedUpdatedAt = expectedUpdatedAt;
+  }
+  if (resolutionSummary !== undefined) {
+    payload.resolutionSummary = resolutionSummary;
+  }
+
   const res = await fetch(`${API_BASE}/staff/tickets/${ticketId}/status`, {
     method: "PATCH",
     headers: {
       Authorization: `Bearer ${token}`,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ status }),
+    body: JSON.stringify(payload),
   });
 
   if (!res.ok) {
     const errorData = await res.json().catch(() => ({}));
-    throw new Error(errorData.error || `Failed to update status (${res.status})`);
+    const err = new Error(errorData.error || `Failed to update status (${res.status})`);
+    (err as any).status = res.status;
+    throw err;
   }
 
   return res.json();
@@ -277,6 +296,75 @@ export async function fetchStaffUsers(
   if (!res.ok) {
     const errorData = await res.json().catch(() => ({}));
     throw new Error(errorData.error || `Failed to fetch staff users (${res.status})`);
+  }
+
+  return res.json();
+}
+
+export async function fetchTicketActions(
+  token: string,
+  ticketId: string
+): Promise<{ actions: ActionTakenDto[] }> {
+  const res = await fetch(`${API_BASE}/tickets/${ticketId}/actions`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    const err = new Error(errorData.error || `Failed to fetch actions (${res.status})`);
+    (err as any).status = res.status;
+    throw err;
+  }
+
+  return res.json();
+}
+
+export async function createTicketAction(
+  token: string,
+  ticketId: string,
+  payload: CreateActionTakenPayload
+): Promise<{ action: ActionTakenDto }> {
+  const res = await fetch(`${API_BASE}/tickets/${ticketId}/actions`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    const err = new Error(errorData.error || `Failed to create action (${res.status})`);
+    (err as any).status = res.status;
+    throw err;
+  }
+
+  return res.json();
+}
+
+export async function updateTicketAction(
+  token: string,
+  ticketId: string,
+  actionId: string,
+  payload: UpdateActionTakenPayload
+): Promise<{ action: ActionTakenDto }> {
+  const res = await fetch(`${API_BASE}/tickets/${ticketId}/actions/${actionId}`, {
+    method: "PATCH",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    const err = new Error(errorData.error || `Failed to update action (${res.status})`);
+    (err as any).status = res.status;
+    throw err;
   }
 
   return res.json();

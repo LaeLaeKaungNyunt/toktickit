@@ -131,6 +131,7 @@ export interface TicketDetailDto {
   description: string;
   currentStatus: string;
   requesterResolution?: string | null;
+  resolutionSummary?: string | null;
   createdAt: string;
   updatedAt: string;
   attachments: AttachmentDto[];
