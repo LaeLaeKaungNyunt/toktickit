@@ -10,12 +10,15 @@ test.describe("Lab 3 E2E — IT Staff Queue, Ticket Operations & Screenshots", (
     await page.getByLabel(/Password/i).fill("Password123!");
     await page.getByRole("button", { name: "Sign In" }).click();
 
-    await expect(page.locator(".border-bottom").getByText("Sam Staff")).toBeVisible();
-    await expect(page.locator(".border-bottom").getByText("IT Staff")).toBeVisible();
-    await expect(page.getByRole("button", { name: "IT Staff Queue" })).toBeVisible();
+    await expect(page.locator(".border-bottom").first().getByText("Sam Staff")).toBeVisible();
+    await expect(page.locator(".border-bottom").first().getByText("IT Staff", { exact: true })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Queue", exact: true })).toBeVisible();
 
     // Verify User Management tab is NOT present for IT Staff
     await expect(page.getByRole("button", { name: "User Management" })).not.toBeVisible();
+
+    // Navigate to Queue tab from default Dashboard
+    await page.getByRole("button", { name: "Queue", exact: true }).click();
 
     // Assert ticket items are rendered
     const ticketRows = page.locator(".staff-queue-desktop-table tbody tr");
@@ -93,10 +96,14 @@ test.describe("Lab 3 E2E — IT Staff Queue, Ticket Operations & Screenshots", (
     await page.getByLabel(/Password/i).fill("Password123!");
     await page.getByRole("button", { name: "Sign In" }).click();
 
-    await expect(page.locator(".border-bottom").getByText("Sam Staff")).toBeVisible();
+    await expect(page.locator(".border-bottom").first().getByText("Sam Staff")).toBeVisible();
+
+    // Navigate to Queue tab from default Dashboard
+    await page.getByRole("button", { name: "Queue", exact: true }).click();
 
     // Open first ticket in queue
     const firstDetailBtn = page.getByRole("button", { name: "View Detail" }).first();
+    await expect(firstDetailBtn).toBeVisible();
     await firstDetailBtn.click();
 
     // Verify Ticket Detail heading and info loaded
@@ -174,6 +181,6 @@ test.describe("Lab 3 E2E — IT Staff Queue, Ticket Operations & Screenshots", (
 
     // 8. Return to Queue
     await page.getByRole("button", { name: /Back to Ticket Queue/i }).click();
-    await expect(page.getByRole("button", { name: "IT Staff Queue" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Queue", exact: true })).toBeVisible();
   });
 });
