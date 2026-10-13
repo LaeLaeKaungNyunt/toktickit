@@ -10,14 +10,15 @@ import { StaffTicketQueue, StaffQueueFilters } from "./components/StaffTicketQue
 import { StaffTicketDetail } from "./components/StaffTicketDetail.js";
 import { UserManagement } from "./components/UserManagement.js";
 import { StaffDashboard } from "./components/StaffDashboard.js";
+import { RequesterDashboard } from "./components/RequesterDashboard.js";
 
 type UiState = "idle" | "loading" | "success" | "error";
-type TabState = "create" | "list";
+type TabState = "dashboard" | "create" | "list";
 type StaffTabState = "dashboard" | "queue" | "users";
 
 export function AppContent() {
   const { user, loading, logout } = useAuth();
-  const [activeTab, setActiveTab] = useState<TabState>("create");
+  const [activeTab, setActiveTab] = useState<TabState>("dashboard");
   const [staffTab, setStaffTab] = useState<StaffTabState>("dashboard");
   const [queueFilters, setQueueFilters] = useState<StaffQueueFilters | undefined>(undefined);
   const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
@@ -29,6 +30,7 @@ export function AppContent() {
   if (prevUserIdRef.current !== user?.id) {
     prevUserIdRef.current = user?.id;
     setSelectedTicketId(null);
+    setActiveTab("dashboard");
     setStaffTab("dashboard");
     setQueueFilters(undefined);
   }
@@ -103,6 +105,19 @@ export function AppContent() {
             <li className="nav-item">
               <button
                 type="button"
+                className={`nav-link ${activeTab === "dashboard" ? "active fw-bold" : ""}`}
+                style={activeTab === "dashboard" ? { color: "#006B3C" } : {}}
+                onClick={() => {
+                  setActiveTab("dashboard");
+                  setSelectedTicketId(null);
+                }}
+              >
+                Dashboard
+              </button>
+            </li>
+            <li className="nav-item">
+              <button
+                type="button"
                 className={`nav-link ${activeTab === "create" ? "active fw-bold" : ""}`}
                 style={activeTab === "create" ? { color: "#006B3C" } : {}}
                 onClick={() => {
@@ -128,23 +143,35 @@ export function AppContent() {
             </li>
           </ul>
 
-          {activeTab === "create" && <CreateTicketForm />}
+          {selectedTicketId ? (
+            <TicketDetail
+              ticketId={selectedTicketId}
+              onBack={() => setSelectedTicketId(null)}
+            />
+          ) : (
+            <>
+              {activeTab === "dashboard" && (
+                <RequesterDashboard
+                  onNavigateToMyTickets={() => {
+                    setActiveTab("list");
+                    setSelectedTicketId(null);
+                  }}
+                  onSelectTicket={(ticketId) => setSelectedTicketId(ticketId)}
+                />
+              )}
 
-          {activeTab === "list" && (
-            selectedTicketId ? (
-              <TicketDetail
-                ticketId={selectedTicketId}
-                onBack={() => setSelectedTicketId(null)}
-              />
-            ) : (
-              <MyTickets
-                onNavigateToCreateTicket={() => {
-                  setActiveTab("create");
-                  setSelectedTicketId(null);
-                }}
-                onSelectTicket={(ticketId) => setSelectedTicketId(ticketId)}
-              />
-            )
+              {activeTab === "create" && <CreateTicketForm />}
+
+              {activeTab === "list" && (
+                <MyTickets
+                  onNavigateToCreateTicket={() => {
+                    setActiveTab("create");
+                    setSelectedTicketId(null);
+                  }}
+                  onSelectTicket={(ticketId) => setSelectedTicketId(ticketId)}
+                />
+              )}
+            </>
           )}
         </>
       ) : user.role === "IT Staff" ? (
