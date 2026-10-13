@@ -6,16 +6,20 @@ import MyTickets from "./components/MyTickets.js";
 import TicketDetail from "./components/TicketDetail.js";
 import Login from "./components/Login.js";
 import ChangePassword from "./components/ChangePassword.js";
-import { StaffTicketQueue } from "./components/StaffTicketQueue.js";
+import { StaffTicketQueue, StaffQueueFilters } from "./components/StaffTicketQueue.js";
 import { StaffTicketDetail } from "./components/StaffTicketDetail.js";
 import { UserManagement } from "./components/UserManagement.js";
+import { StaffDashboard } from "./components/StaffDashboard.js";
 
 type UiState = "idle" | "loading" | "success" | "error";
 type TabState = "create" | "list";
+type StaffTabState = "dashboard" | "queue" | "users";
 
 export function AppContent() {
   const { user, loading, logout } = useAuth();
   const [activeTab, setActiveTab] = useState<TabState>("create");
+  const [staffTab, setStaffTab] = useState<StaffTabState>("dashboard");
+  const [queueFilters, setQueueFilters] = useState<StaffQueueFilters | undefined>(undefined);
   const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
   const [state, setState] = useState<UiState>("idle");
   const [categories, setCategories] = useState<Category[]>([]);
@@ -25,6 +29,8 @@ export function AppContent() {
   if (prevUserIdRef.current !== user?.id) {
     prevUserIdRef.current = user?.id;
     setSelectedTicketId(null);
+    setStaffTab("dashboard");
+    setQueueFilters(undefined);
   }
 
   async function handleCheck() {
@@ -147,22 +153,58 @@ export function AppContent() {
             <li className="nav-item">
               <button
                 type="button"
-                className="nav-link active fw-bold"
-                style={{ color: "#006B3C" }}
-                onClick={() => setSelectedTicketId(null)}
+                className={`nav-link ${staffTab === "dashboard" ? "active fw-bold" : ""}`}
+                style={staffTab === "dashboard" ? { color: "#006B3C" } : {}}
+                onClick={() => {
+                  setStaffTab("dashboard");
+                  setSelectedTicketId(null);
+                }}
               >
-                IT Staff Queue
+                Dashboard
+              </button>
+            </li>
+            <li className="nav-item">
+              <button
+                type="button"
+                className={`nav-link ${staffTab === "queue" ? "active fw-bold" : ""}`}
+                style={staffTab === "queue" ? { color: "#006B3C" } : {}}
+                onClick={() => {
+                  setStaffTab("queue");
+                  setSelectedTicketId(null);
+                  setQueueFilters(undefined);
+                }}
+              >
+                Queue
               </button>
             </li>
           </ul>
 
-          {selectedTicketId ? (
-            <StaffTicketDetail
-              ticketId={selectedTicketId}
-              onBack={() => setSelectedTicketId(null)}
+          {staffTab === "dashboard" && (
+            <StaffDashboard
+              onNavigateToQueue={(filters) => {
+                setQueueFilters(filters);
+                setSelectedTicketId(null);
+                setStaffTab("queue");
+              }}
+              onSelectTicket={(ticketId) => {
+                setSelectedTicketId(ticketId);
+                setStaffTab("queue");
+              }}
             />
-          ) : (
-            <StaffTicketQueue onSelectTicket={(ticketId) => setSelectedTicketId(ticketId)} />
+          )}
+
+          {staffTab === "queue" && (
+            selectedTicketId ? (
+              <StaffTicketDetail
+                ticketId={selectedTicketId}
+                onBack={() => setSelectedTicketId(null)}
+              />
+            ) : (
+              <StaffTicketQueue
+                initialFilters={queueFilters}
+                onSelectTicket={(ticketId) => setSelectedTicketId(ticketId)}
+              />
+            )
           )}
         </>
       ) : user.role === "Administrator" ? (
@@ -171,15 +213,74 @@ export function AppContent() {
             <li className="nav-item">
               <button
                 type="button"
-                className="nav-link active fw-bold"
-                style={{ color: "#006B3C" }}
+                className={`nav-link ${staffTab === "dashboard" ? "active fw-bold" : ""}`}
+                style={staffTab === "dashboard" ? { color: "#006B3C" } : {}}
+                onClick={() => {
+                  setStaffTab("dashboard");
+                  setSelectedTicketId(null);
+                }}
+              >
+                Dashboard
+              </button>
+            </li>
+            <li className="nav-item">
+              <button
+                type="button"
+                className={`nav-link ${staffTab === "queue" ? "active fw-bold" : ""}`}
+                style={staffTab === "queue" ? { color: "#006B3C" } : {}}
+                onClick={() => {
+                  setStaffTab("queue");
+                  setSelectedTicketId(null);
+                  setQueueFilters(undefined);
+                }}
+              >
+                Queue
+              </button>
+            </li>
+            <li className="nav-item">
+              <button
+                type="button"
+                className={`nav-link ${staffTab === "users" ? "active fw-bold" : ""}`}
+                style={staffTab === "users" ? { color: "#006B3C" } : {}}
+                onClick={() => {
+                  setStaffTab("users");
+                  setSelectedTicketId(null);
+                }}
               >
                 User Management
               </button>
             </li>
           </ul>
 
-          <UserManagement />
+          {staffTab === "dashboard" && (
+            <StaffDashboard
+              onNavigateToQueue={(filters) => {
+                setQueueFilters(filters);
+                setSelectedTicketId(null);
+                setStaffTab("queue");
+              }}
+              onSelectTicket={(ticketId) => {
+                setSelectedTicketId(ticketId);
+                setStaffTab("queue");
+              }}
+            />
+          )}
+
+          {staffTab === "queue" && (
+            selectedTicketId ? (
+              <StaffTicketDetail
+                ticketId={selectedTicketId}
+                onBack={() => setSelectedTicketId(null)}
+              />
+            ) : (
+              <StaffTicketQueue
+                initialFilters={queueFilters}
+                onSelectTicket={(ticketId) => setSelectedTicketId(ticketId)}
+              />
+            )
+          )}
+
+          {staffTab === "users" && <UserManagement />}
         </>
       ) : (
         <div className="card mb-4 border shadow-sm">

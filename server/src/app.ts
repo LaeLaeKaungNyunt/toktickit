@@ -57,11 +57,13 @@ app.get("/api/categories", async (_req: Request, res: Response) => {
 });
 
 import adminRouter from "./routes/v1/admin.js";
+import dashboardRouter from "./routes/v1/dashboard.js";
 
-// Lab 3 API v1 Routes
+// Lab 3 & 4 API v1 Routes
 app.use("/api/v1/auth", authRouter);
 app.use("/api/v1/staff", staffRouter);
 app.use("/api/v1/admin", adminRouter);
+app.use("/api/v1/dashboard", dashboardRouter);
 app.use("/api/v1", referenceDataRouter);
 app.use("/api/v1", ticketsRouter);
 

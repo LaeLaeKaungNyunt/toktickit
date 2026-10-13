@@ -5,14 +5,9 @@ import { authenticateToken, requireRole, AuthenticatedRequest } from "../../midd
 
 export const staffRouter = Router();
 
-// Apply authentication to all staff routes; permit Administrator on status transitions (Issue #46)
+// Apply authentication to all staff routes; permit IT Staff and Administrator (Approved Decision 2)
 staffRouter.use(authenticateToken);
-staffRouter.use((req: Request, res: Response, next) => {
-  if (req.method === "PATCH" && req.path.endsWith("/status")) {
-    return requireRole("IT Staff", "Administrator")(req, res, next);
-  }
-  return requireRole("IT Staff")(req, res, next);
-});
+staffRouter.use(requireRole("IT Staff", "Administrator"));
 
 const VALID_STATUSES = new Set([
   "New",
@@ -70,7 +65,7 @@ staffRouter.get("/users", async (req: Request, res: Response): Promise<void> => 
 
 /**
  * GET /api/v1/staff/tickets
- * Returns the ticket queue for an authenticated IT Staff user.
+ * Returns the ticket queue for an authenticated IT Staff or Administrator user.
  */
 staffRouter.get("/tickets", async (req: Request, res: Response): Promise<void> => {
   try {
@@ -79,6 +74,7 @@ staffRouter.get("/tickets", async (req: Request, res: Response): Promise<void> =
       status,
       priority,
       assignment,
+      assignedToMe,
       sortBy = "createdAt",
       sortOrder = "desc",
       page = "1",
@@ -91,13 +87,27 @@ staffRouter.get("/tickets", async (req: Request, res: Response): Promise<void> =
       return;
     }
 
-    if (priority !== undefined && (typeof priority !== "string" || !VALID_PRIORITIES.has(priority))) {
-      res.status(400).json({ error: "Invalid priority query parameter" });
-      return;
+    let priorityList: string[] = [];
+    if (priority !== undefined) {
+      if (typeof priority !== "string") {
+        res.status(400).json({ error: "Invalid priority query parameter" });
+        return;
+      }
+      const parts = priority.split(",").map((p) => p.trim());
+      if (parts.length === 0 || parts.some((p) => !VALID_PRIORITIES.has(p))) {
+        res.status(400).json({ error: "Invalid priority query parameter" });
+        return;
+      }
+      priorityList = parts;
     }
 
     if (assignment !== undefined && (typeof assignment !== "string" || !VALID_ASSIGNMENTS.has(assignment))) {
       res.status(400).json({ error: "Invalid assignment query parameter" });
+      return;
+    }
+
+    if (assignedToMe !== undefined && assignedToMe !== "true" && assignedToMe !== "false") {
+      res.status(400).json({ error: "Invalid assignedToMe query parameter" });
       return;
     }
 
@@ -140,11 +150,21 @@ staffRouter.get("/tickets", async (req: Request, res: Response): Promise<void> =
       where.currentStatus = status as string;
     }
 
-    if (priority) {
-      if (priority === "Unassigned") {
+    if (priorityList.length > 0) {
+      const hasUnassigned = priorityList.includes("Unassigned");
+      const namedPriorities = priorityList.filter((p) => p !== "Unassigned");
+
+      if (hasUnassigned && namedPriorities.length > 0) {
+        where.OR = [
+          { itPriority: null },
+          { itPriority: { in: namedPriorities } },
+        ];
+      } else if (hasUnassigned) {
         where.itPriority = null;
+      } else if (namedPriorities.length === 1) {
+        where.itPriority = namedPriorities[0];
       } else {
-        where.itPriority = priority as string;
+        where.itPriority = { in: namedPriorities };
       }
     }
 
@@ -156,15 +176,31 @@ staffRouter.get("/tickets", async (req: Request, res: Response): Promise<void> =
       }
     }
 
+    if (assignedToMe === "true") {
+      const userId = (req as AuthenticatedRequest).user!.id;
+      where.assigneeId = userId;
+    }
+
     if (typeof search === "string" && search.trim().length > 0) {
       const trimmedSearch = search.trim();
-      where.OR = [
+      const searchOr: Prisma.TicketWhereInput[] = [
         { ticketNumber: { contains: trimmedSearch, mode: "insensitive" } },
         { summary: { contains: trimmedSearch, mode: "insensitive" } },
         { description: { contains: trimmedSearch, mode: "insensitive" } },
         { requester: { name: { contains: trimmedSearch, mode: "insensitive" } } },
         { category: { name: { contains: trimmedSearch, mode: "insensitive" } } },
       ];
+
+      if (where.OR) {
+        const existingOr = where.OR;
+        delete where.OR;
+        where.AND = [
+          { OR: existingOr },
+          { OR: searchOr },
+        ];
+      } else {
+        where.OR = searchOr;
+      }
     }
 
     // 3. Count Total Items
