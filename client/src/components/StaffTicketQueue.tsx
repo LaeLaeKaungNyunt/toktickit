@@ -3,22 +3,44 @@ import { useAuth } from "../context/AuthContext";
 import { fetchStaffTickets } from "../api/staff";
 import { StaffQueueTicket, StaffQueueQueryParams, StaffQueuePagination } from "../types/staff";
 
-interface StaffTicketQueueProps {
-  onSelectTicket?: (ticketId: string) => void;
+export interface StaffQueueFilters {
+  assignment?: string;
+  assignedToMe?: boolean;
+  priority?: string;
+  status?: string;
+  search?: string;
 }
 
-export const StaffTicketQueue: React.FC<StaffTicketQueueProps> = ({ onSelectTicket }) => {
+interface StaffTicketQueueProps {
+  onSelectTicket?: (ticketId: string) => void;
+  initialFilters?: StaffQueueFilters;
+}
+
+export const StaffTicketQueue: React.FC<StaffTicketQueueProps> = ({ onSelectTicket, initialFilters }) => {
   const { token } = useAuth();
 
   // Query State
-  const [search, setSearch] = useState<string>("");
-  const [statusFilter, setStatusFilter] = useState<string>("");
-  const [priorityFilter, setPriorityFilter] = useState<string>("");
-  const [assignmentFilter, setAssignmentFilter] = useState<string>("");
+  const [search, setSearch] = useState<string>(initialFilters?.search ?? "");
+  const [statusFilter, setStatusFilter] = useState<string>(initialFilters?.status ?? "");
+  const [priorityFilter, setPriorityFilter] = useState<string>(initialFilters?.priority ?? "");
+  const [assignmentFilter, setAssignmentFilter] = useState<string>(initialFilters?.assignment ?? "");
+  const [assignedToMeFilter, setAssignedToMeFilter] = useState<boolean>(initialFilters?.assignedToMe ?? false);
   const [sortBy, setSortBy] = useState<"createdAt" | "ticketNumber" | "status" | "requestedPriority" | "itPriority" | "updatedAt">("createdAt");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
   const [page, setPage] = useState<number>(1);
   const pageSize = 20;
+
+  // Sync incoming initialFilters if they change
+  useEffect(() => {
+    if (initialFilters) {
+      if (initialFilters.search !== undefined) setSearch(initialFilters.search);
+      if (initialFilters.status !== undefined) setStatusFilter(initialFilters.status);
+      if (initialFilters.priority !== undefined) setPriorityFilter(initialFilters.priority);
+      if (initialFilters.assignment !== undefined) setAssignmentFilter(initialFilters.assignment);
+      if (initialFilters.assignedToMe !== undefined) setAssignedToMeFilter(initialFilters.assignedToMe);
+      setPage(1);
+    }
+  }, [initialFilters]);
 
   // Data & Async State
   const [tickets, setTickets] = useState<StaffQueueTicket[]>([]);
@@ -41,6 +63,7 @@ export const StaffTicketQueue: React.FC<StaffTicketQueueProps> = ({ onSelectTick
       status: statusFilter || undefined,
       priority: priorityFilter || undefined,
       assignment: assignmentFilter || undefined,
+      assignedToMe: assignedToMeFilter ? true : undefined,
       sortBy,
       sortOrder,
       page,
@@ -56,7 +79,7 @@ export const StaffTicketQueue: React.FC<StaffTicketQueueProps> = ({ onSelectTick
     } finally {
       setLoading(false);
     }
-  }, [token, search, statusFilter, priorityFilter, assignmentFilter, sortBy, sortOrder, page]);
+  }, [token, search, statusFilter, priorityFilter, assignmentFilter, assignedToMeFilter, sortBy, sortOrder, page]);
 
   useEffect(() => {
     loadQueue();
@@ -67,6 +90,7 @@ export const StaffTicketQueue: React.FC<StaffTicketQueueProps> = ({ onSelectTick
     setStatusFilter("");
     setPriorityFilter("");
     setAssignmentFilter("");
+    setAssignedToMeFilter(false);
     setSortBy("createdAt");
     setSortOrder("desc");
     setPage(1);
@@ -162,10 +186,12 @@ export const StaffTicketQueue: React.FC<StaffTicketQueueProps> = ({ onSelectTick
               >
                 <option value="">All Statuses</option>
                 <option value="New">New</option>
+                <option value="Open">Open</option>
                 <option value="In Progress">In Progress</option>
-                <option value="On Hold">On Hold</option>
+                <option value="Waiting for Requester">Waiting for Requester</option>
                 <option value="Resolved">Resolved</option>
                 <option value="Closed">Closed</option>
+                <option value="Reopened">Reopened</option>
                 <option value="Cancelled">Cancelled</option>
               </select>
             </div>
@@ -185,6 +211,7 @@ export const StaffTicketQueue: React.FC<StaffTicketQueueProps> = ({ onSelectTick
                 }}
               >
                 <option value="">All Priorities</option>
+                <option value="Urgent,High">Urgent, High</option>
                 <option value="Urgent">Urgent</option>
                 <option value="High">High</option>
                 <option value="Medium">Medium</option>
@@ -245,8 +272,28 @@ export const StaffTicketQueue: React.FC<StaffTicketQueueProps> = ({ onSelectTick
             </div>
           </div>
 
+          {/* Active Filter Badges */}
+          {assignedToMeFilter && (
+            <div className="d-flex flex-wrap align-items-center gap-2 mt-3 pt-2 border-top">
+              <span className="small text-muted fw-semibold">Active Filter:</span>
+              <span className="badge bg-success bg-opacity-10 text-success border border-success d-inline-flex align-items-center gap-1">
+                Assigned to Me
+                <button
+                  type="button"
+                  className="btn-close btn-close-sm"
+                  aria-label="Dismiss assigned to me filter"
+                  style={{ fontSize: "0.5rem" }}
+                  onClick={() => {
+                    setAssignedToMeFilter(false);
+                    setPage(1);
+                  }}
+                />
+              </span>
+            </div>
+          )}
+
           {/* Reset Filters Bar */}
-          {(search || statusFilter || priorityFilter || assignmentFilter || sortBy !== "createdAt" || sortOrder !== "desc") && (
+          {(search || statusFilter || priorityFilter || assignmentFilter || assignedToMeFilter || sortBy !== "createdAt" || sortOrder !== "desc") && (
             <div className="mt-2 text-end">
               <button
                 type="button"

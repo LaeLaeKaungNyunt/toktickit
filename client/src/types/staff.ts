@@ -38,10 +38,61 @@ export interface StaffQueueQueryParams {
   status?: string;
   priority?: string;
   assignment?: string;
+  assignedToMe?: boolean;
   sortBy?: "ticketNumber" | "createdAt" | "status" | "requestedPriority" | "itPriority" | "updatedAt";
   sortOrder?: "asc" | "desc";
   page?: number;
   pageSize?: number;
+}
+
+export interface StaffDashboardMetrics {
+  unassignedTickets: number;
+  myAssignedTickets: number;
+  urgentTickets: number;
+  myActiveActionsCount: number;
+  statusCounts: Record<string, number>;
+}
+
+export interface DashboardActionDto {
+  id: string;
+  ticketId: string;
+  ticketNumber: string;
+  ticketSummary: string;
+  description: string;
+  status: string;
+  followUpRequired: boolean;
+  actionDateTime: string;
+  createdAt: string;
+}
+
+export interface DashboardRecentTicketDto {
+  id: string;
+  ticketNumber: string;
+  summary: string;
+  status: string;
+  requestedPriority: string;
+  itPriority: string | null;
+  updatedAt: string;
+}
+
+export interface DashboardUrgentTicketDto {
+  id: string;
+  ticketNumber: string;
+  summary: string;
+  status: string;
+  itPriority: string;
+  assignee: {
+    id: string;
+    name: string;
+  } | null;
+  updatedAt: string;
+}
+
+export interface StaffDashboardResponse {
+  metrics: StaffDashboardMetrics;
+  myActions: DashboardActionDto[];
+  recentTickets: DashboardRecentTicketDto[];
+  urgentTickets: DashboardUrgentTicketDto[];
 }
 
 export interface ActionPerformerDto {

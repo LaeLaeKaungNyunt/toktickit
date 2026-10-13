@@ -1,12 +1,29 @@
 import {
   StaffQueueQueryParams,
   StaffQueueResponse,
+  StaffDashboardResponse,
   ActionTakenDto,
   CreateActionTakenPayload,
   UpdateActionTakenPayload,
 } from "../types/staff";
 
 const API_BASE = "http://localhost:3000/api/v1";
+
+export async function fetchStaffDashboard(token: string): Promise<StaffDashboardResponse> {
+  const url = `${API_BASE}/dashboard/staff`;
+  const res = await fetch(url, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.error || `Failed to fetch staff dashboard (${res.status})`);
+  }
+
+  return res.json();
+}
 
 export async function fetchStaffTickets(
   token: string,
@@ -18,6 +35,7 @@ export async function fetchStaffTickets(
   if (params.status) query.append("status", params.status);
   if (params.priority) query.append("priority", params.priority);
   if (params.assignment) query.append("assignment", params.assignment);
+  if (params.assignedToMe !== undefined) query.append("assignedToMe", String(params.assignedToMe));
   if (params.sortBy) query.append("sortBy", params.sortBy);
   if (params.sortOrder) query.append("sortOrder", params.sortOrder);
   if (params.page !== undefined) query.append("page", String(params.page));
