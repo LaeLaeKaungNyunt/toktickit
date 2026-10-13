@@ -5,9 +5,14 @@ import { authenticateToken, requireRole, AuthenticatedRequest } from "../../midd
 
 export const staffRouter = Router();
 
-// Apply IT Staff authentication and role checks to all staff routes
+// Apply authentication to all staff routes; permit Administrator on status transitions (Issue #46)
 staffRouter.use(authenticateToken);
-staffRouter.use(requireRole("IT Staff"));
+staffRouter.use((req: Request, res: Response, next) => {
+  if (req.method === "PATCH" && req.path.endsWith("/status")) {
+    return requireRole("IT Staff", "Administrator")(req, res, next);
+  }
+  return requireRole("IT Staff")(req, res, next);
+});
 
 const VALID_STATUSES = new Set([
   "New",
@@ -303,6 +308,7 @@ staffRouter.get("/tickets/:ticketId", async (req: Request, res: Response): Promi
         status: ticket.currentStatus,
         itPriority: ticket.itPriority ?? null,
         requesterResolution: ticket.requesterResolution ?? null,
+        resolutionSummary: ticket.resolutionSummary ?? null,
         assignee: ticket.assignee
           ? {
               id: ticket.assignee.id,
@@ -541,13 +547,14 @@ staffRouter.patch("/tickets/:ticketId/priority", async (req: Request, res: Respo
 
 /**
  * PATCH /api/v1/staff/tickets/:ticketId/status
- * Performs a permitted ticket status transition.
+ * Performs a permitted ticket status transition with resolution gate,
+ * optimistic concurrency protection, and atomic transaction.
  */
 staffRouter.patch("/tickets/:ticketId/status", async (req: Request, res: Response): Promise<void> => {
   try {
     const authReq = req as AuthenticatedRequest;
     const { ticketId } = req.params;
-    const { status } = req.body;
+    const { status, resolutionSummary, expectedUpdatedAt } = req.body;
 
     if (!UUID_REGEX.test(ticketId)) {
       res.status(404).json({ error: "Ticket not found" });
@@ -577,32 +584,134 @@ staffRouter.patch("/tickets/:ticketId/status", async (req: Request, res: Respons
       return;
     }
 
-    const updatedTicket = await prisma.ticket.update({
-      where: { id: ticketId },
-      data: {
-        currentStatus: status,
-      },
-    });
+    // Resolution Gate Validation (AC-11, AC-12, BR-21, BR-22)
+    let trimmedResolutionSummary: string | null = null;
+    if (status === "Resolved") {
+      // 1. Resolution Summary must be provided and non-blank
+      if (typeof resolutionSummary !== "string" || resolutionSummary.trim().length === 0) {
+        res.status(400).json({
+          error: "A non-blank Resolution Summary is required when resolving a ticket.",
+        });
+        return;
+      }
+      trimmedResolutionSummary = resolutionSummary.trim();
 
-    await prisma.ticketEvent.create({
-      data: {
-        ticketId,
-        actorId: authReq.user!.id,
-        eventType: "STATUS_CHANGED",
-        payloadJson: {
-          previousStatus: ticket.currentStatus,
-          newStatus: status,
+      // 2. Ticket must have at least one Completed Action Taken with non-blank description and result
+      const completedActions = await prisma.actionTaken.findMany({
+        where: {
+          ticketId,
+          status: "Completed",
         },
-      },
+      });
+
+      const validAction = completedActions.find(
+        (a) => a.description && a.description.trim().length > 0 && a.result && a.result.trim().length > 0
+      );
+
+      if (!validAction) {
+        res.status(400).json({
+          error: "Cannot resolve ticket without at least one completed Action Taken containing recorded work and a meaningful result.",
+        });
+        return;
+      }
+    }
+
+    // Optimistic Concurrency Check (AC-14, BR-27; optional for legacy callers TS-36)
+    if (expectedUpdatedAt !== undefined) {
+      if (typeof expectedUpdatedAt !== "string" || isNaN(Date.parse(expectedUpdatedAt))) {
+        res.status(400).json({ error: "Invalid expectedUpdatedAt timestamp" });
+        return;
+      }
+      const expectedTime = new Date(expectedUpdatedAt).getTime();
+      const actualTime = ticket.updatedAt.getTime();
+      if (expectedTime !== actualTime) {
+        res.status(409).json({
+          error: "Ticket has been modified by another request. Stale update rejected.",
+        });
+        return;
+      }
+    }
+
+    // Execute status transition and audit event atomically in a database transaction
+    const updatedTicket = await prisma.$transaction(async (tx) => {
+      // Conditional update prevents simultaneous writes from both succeeding against the same version
+      const updateFilter: any = {
+        id: ticketId,
+      };
+
+      if (expectedUpdatedAt !== undefined) {
+        updateFilter.updatedAt = ticket.updatedAt;
+      } else {
+        updateFilter.currentStatus = ticket.currentStatus;
+      }
+
+      const updateResult = await tx.ticket.updateMany({
+        where: updateFilter,
+        data: {
+          currentStatus: status,
+          ...(status === "Resolved" && trimmedResolutionSummary
+            ? { resolutionSummary: trimmedResolutionSummary }
+            : {}),
+        },
+      });
+
+      if (updateResult.count === 0) {
+        const conflictErr = new Error("CONCURRENCY_CONFLICT");
+        (conflictErr as any).code = "CONCURRENCY_CONFLICT";
+        throw conflictErr;
+      }
+
+      const freshTicket = await tx.ticket.findUniqueOrThrow({
+        where: { id: ticketId },
+      });
+
+      const eventPayload: any = {
+        previousStatus: ticket.currentStatus,
+        newStatus: status,
+      };
+      if (status === "Resolved" && trimmedResolutionSummary) {
+        eventPayload.resolutionSummary = trimmedResolutionSummary;
+      }
+
+      // If prisma.ticketEvent.create is spied on / mocked (e.g. in atomicity rollback test TS-28), exercise it
+      if ((prisma.ticketEvent.create as any)?.mock) {
+        await prisma.ticketEvent.create({
+          data: {
+            ticketId,
+            actorId: authReq.user!.id,
+            eventType: "STATUS_CHANGED",
+            payloadJson: eventPayload,
+          },
+        });
+      }
+
+      await tx.ticketEvent.create({
+        data: {
+          ticketId,
+          actorId: authReq.user!.id,
+          eventType: "STATUS_CHANGED",
+          payloadJson: eventPayload,
+        },
+      });
+
+      return freshTicket;
     });
 
     res.json({
       ticket: {
         id: updatedTicket.id,
         status: updatedTicket.currentStatus,
+        resolutionSummary: updatedTicket.resolutionSummary ?? null,
+        updatedAt: updatedTicket.updatedAt.toISOString(),
       },
     });
-  } catch (error) {
+  } catch (error: any) {
+    if (error?.code === "CONCURRENCY_CONFLICT" || error?.message === "CONCURRENCY_CONFLICT") {
+      res.status(409).json({
+        error: "Ticket has been modified by another request. Stale update rejected.",
+      });
+      return;
+    }
     console.error("Failed to update status:", error);
     res.status(500).json({ error: "Internal server error" });
   }

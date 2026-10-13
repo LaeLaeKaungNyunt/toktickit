@@ -567,6 +567,7 @@ router.get(
         description: ticket.description,
         currentStatus: ticket.currentStatus,
         requesterResolution: ticket.requesterResolution ?? null,
+        resolutionSummary: ticket.resolutionSummary ?? null,
         createdAt: ticket.createdAt.toISOString(),
         updatedAt: ticket.updatedAt.toISOString(),
         attachments: ticket.attachments.map((att) => ({

@@ -43,3 +43,52 @@ export interface StaffQueueQueryParams {
   page?: number;
   pageSize?: number;
 }
+
+export interface ActionPerformerDto {
+  id: string;
+  name: string;
+}
+
+export interface ActionAssigneeDto {
+  id: string;
+  name: string;
+}
+
+export interface ActionTakenDto {
+  id: string;
+  ticketId: string;
+  actionDateTime: string;
+  description: string;
+  result: string;
+  performedById: string;
+  performedBy: ActionPerformerDto;
+  assignedToId: string | null;
+  assignedTo: ActionAssigneeDto | null;
+  followUpRequired: boolean;
+  followUpNote: string | null;
+  attachmentNotes: string | null;
+  status: "Active" | "Completed" | "Cancelled";
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateActionTakenPayload {
+  actionDateTime: string;
+  description: string;
+  result: string;
+  assignedToId?: string | null;
+  followUpRequired: boolean;
+  followUpNote?: string | null;
+  attachmentNotes?: string | null;
+}
+
+export interface UpdateActionTakenPayload {
+  description?: string;
+  result?: string;
+  assignedToId?: string | null;
+  followUpRequired?: boolean;
+  followUpNote?: string | null;
+  attachmentNotes?: string | null;
+  status?: "Active" | "Completed" | "Cancelled";
+  expectedUpdatedAt: string;
+}
